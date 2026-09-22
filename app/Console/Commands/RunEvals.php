@@ -31,6 +31,7 @@ final class RunEvals extends Command
         {--case= : run only cases whose name contains this}
         {--model=* : model(s) to run; defaults to RFQ_LLM_MODEL}
         {--effort=* : effort level(s) (low|medium|high|xhigh|max); defaults to RFQ_LLM_EFFORT}
+        {--without-context : read later pieces of long documents without the headings above them, to measure what that context is worth}
         {--min-recall=0.9 : exit non-zero if any run is below this overall recall}';
 
     protected $description = 'Score line-item extraction against the golden cases';
@@ -73,7 +74,7 @@ final class RunEvals extends Command
             }
         }
 
-        $heading = sprintf('%s — prompt %s, validator %s, %d cases', now()->format('Y-m-d'), ExtractionPrompt::VERSION, GroundingValidator::VERSION, count($cases));
+        $heading = sprintf('%s — prompt %s%s, validator %s, %d cases', now()->format('Y-m-d'), ExtractionPrompt::VERSION, $this->option('without-context') ? ' without piece context' : '', GroundingValidator::VERSION, count($cases));
         $table = RunSummary::markdown($runs, $heading);
         $this->newLine();
         $this->line($table);
@@ -100,7 +101,7 @@ final class RunEvals extends Command
         $scores = [];
         foreach ($cases as $case) {
             $this->line("  <comment>{$case->name}</comment> …");
-            $extractor = new ChunkedLineItemExtractor($llm, $case->chunkChars ?? config('rfq.llm.chunk_chars'));
+            $extractor = new ChunkedLineItemExtractor($llm, $case->chunkChars ?? config('rfq.llm.chunk_chars'), withContext: ! $this->option('without-context'));
             $scores[] = $score = $scorer->score($case, $extractor->extract($case->document));
             foreach ([...array_map(fn ($m) => "missed: {$m}", $score->missed), ...array_map(fn ($u) => "unexpected: {$u}", $score->unexpected), ...array_map(fn ($w) => "no warning about: {$w}", $score->unflagged)] as $problem) {
                 $this->line("      <fg=red>{$problem}</>");

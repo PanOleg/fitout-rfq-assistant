@@ -23,6 +23,8 @@ final readonly class ChunkedLineItemExtractor implements LineItemExtractor
         private LineItemExtractor $inner,
         private int $maxChars,
         private int $minChars = 2_000,
+        // Off only to measure what the context is worth: rfq:eval --without-context.
+        private bool $withContext = true,
     ) {}
 
     public function extract(string $document, string $context = ''): ExtractionResult
@@ -40,7 +42,7 @@ final readonly class ChunkedLineItemExtractor implements LineItemExtractor
     /** $offset is where $piece starts in $document; every piece after the first is given the context before it. */
     private function extractPiece(string $document, string $piece, int $offset, string $outer): ExtractionResult
     {
-        $context = $offset === 0 ? $outer : PieceContext::before($document, $offset);
+        $context = $offset === 0 || ! $this->withContext ? $outer : PieceContext::before($document, $offset);
 
         try {
             return $this->inner->extract($piece, $context);

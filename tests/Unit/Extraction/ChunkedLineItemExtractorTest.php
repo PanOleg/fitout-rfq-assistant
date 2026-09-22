@@ -58,6 +58,16 @@ final class ChunkedLineItemExtractorTest extends TestCase
     }
 
     #[Test]
+    public function context_can_be_switched_off_to_measure_it(): void
+    {
+        $llm = new ScriptedLlmClient(['items' => [], 'warnings' => []], ['items' => [], 'warnings' => []]);
+
+        (new ChunkedLineItemExtractor(new LlmLineItemExtractor($llm), maxChars: 25, withContext: false))->extract("HEADING\nLine one 1 nr\n\nLine two 2 nr\n");
+
+        $this->assertStringNotContainsString('<context>', $llm->requests[1]->messages[0]['content']);
+    }
+
+    #[Test]
     public function a_piece_that_overflows_the_answer_is_halved_and_read_again(): void
     {
         $inner = new class implements LineItemExtractor
