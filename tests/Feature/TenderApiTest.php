@@ -80,6 +80,21 @@ final class TenderApiTest extends TestCase
     }
 
     #[Test]
+    public function reusing_an_idempotency_key_for_a_different_document_is_rejected(): void
+    {
+        $llm = new ScriptedLlmClient(self::ANSWER);
+        $this->app->instance(LlmClient::class, $llm);
+
+        $this->postJson('/api/tenders', $this->payload(), ['Idempotency-Key' => 'upload-42'])->assertAccepted();
+        $this->postJson('/api/tenders', ['document' => self::DOCUMENT."\nM60/010  Emulsion to walls   900 m2"] + $this->payload(), ['Idempotency-Key' => 'upload-42'])
+            ->assertUnprocessable()
+            ->assertJsonPath('message', 'This Idempotency-Key was already used with a different request. Use a new key for a new tender.');
+
+        $this->assertSame(1, Tender::query()->count());
+        $this->assertCount(1, $llm->requests);
+    }
+
+    #[Test]
     public function a_refusal_fails_the_tender_without_retrying(): void
     {
         $this->app->instance(LlmClient::class, new class implements LlmClient
