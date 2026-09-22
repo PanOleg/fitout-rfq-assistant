@@ -17,7 +17,7 @@ interface LlmClient
 {
     /**
      * @throws LlmRefused the model declined the request
-     * @throws LlmOutputTruncated the answer hit max tokens — retrying as-is will not help
+     * @throws LlmOutputTruncated the answer hit max tokens; carries the tokens it still cost
      * @throws LlmUnavailable transient: network, rate limit, overload — safe to retry later
      */
     public function structured(StructuredRequest $request): StructuredResponse;

@@ -64,6 +64,12 @@ final readonly class ExtractionResult
         return new self($items, $warnings, $rejected, $parts[0]->model, $parts[0]->promptVersion, $usage, $attempts, $durationMs);
     }
 
+    /** The same result, charged for calls that were paid for but produced nothing usable. */
+    public function withWastedUsage(Usage $wasted): self
+    {
+        return new self($this->items, $this->warnings, $this->rejected, $this->model, $this->promptVersion, $this->usage->plus($wasted), $this->attempts, $this->durationMs, $this->fromCache, $this->error);
+    }
+
     public function costUsd(): ?float
     {
         return ModelPricing::costUsd($this->model, $this->usage);

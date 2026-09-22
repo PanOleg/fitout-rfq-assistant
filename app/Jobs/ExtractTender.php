@@ -9,6 +9,7 @@ use App\Models\TenderStatus;
 use FitOut\Extraction\LineItemExtractor;
 use FitOut\Llm\Exceptions\LlmOutputTruncated;
 use FitOut\Llm\Exceptions\LlmRefused;
+use FitOut\Llm\ModelPricing;
 use Illuminate\Contracts\Queue\ShouldBeUnique;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Queue\Queueable;
@@ -46,7 +47,12 @@ final class ExtractTender implements ShouldBeUnique, ShouldQueue
 
         try {
             $result = $extractor->extract($tender->document);
-        } catch (LlmRefused|LlmOutputTruncated $e) {
+        } catch (LlmOutputTruncated $e) {
+            $cost = ModelPricing::costUsd($e->model, $e->usage);
+            $tender->update(['status' => TenderStatus::Failed, 'failure' => $e->getMessage().($cost === null ? '' : sprintf(' ($%.4f spent)', $cost))]);
+
+            return;
+        } catch (LlmRefused $e) {
             $tender->update(['status' => TenderStatus::Failed, 'failure' => $e->getMessage()]);
 
             return;

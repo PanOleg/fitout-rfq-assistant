@@ -16,6 +16,7 @@ use FitOut\Extraction\GroundingValidator;
 use FitOut\Extraction\LlmLineItemExtractor;
 use FitOut\Llm\Anthropic\AnthropicLlmClient;
 use FitOut\Llm\Exceptions\LlmException;
+use FitOut\Llm\Exceptions\LlmOutputTruncated;
 use FitOut\Llm\Usage;
 use Illuminate\Console\Command;
 
@@ -110,7 +111,8 @@ final class RunEvals extends Command
             } catch (LlmException $e) {
                 // One failed case must not cost the whole grid: it scores as all-missed and is counted.
                 $this->line('      <fg=red>error: '.$e::class.': '.$e->getMessage().'</>');
-                $result = new ExtractionResult([], ['error: '.$e->getMessage()], [], $model, ExtractionPrompt::VERSION, new Usage, 0, 0, error: $e->getMessage());
+                $spent = $e instanceof LlmOutputTruncated ? $e->usage : new Usage;
+                $result = new ExtractionResult([], ['error: '.$e->getMessage()], [], $model, ExtractionPrompt::VERSION, $spent, 0, 0, error: $e->getMessage());
             }
             $scores[] = $score = $scorer->score($case, $result);
             foreach ([...array_map(fn ($m) => "missed: {$m}", $score->missed), ...array_map(fn ($u) => "unexpected: {$u}", $score->unexpected), ...array_map(fn ($w) => "no warning about: {$w}", $score->unflagged)] as $problem) {

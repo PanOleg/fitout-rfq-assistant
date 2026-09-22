@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace FitOut\Extraction;
 
 use FitOut\Domain\LineItem;
+use FitOut\Llm\Exceptions\LlmOutputTruncated;
 use FitOut\Llm\LlmClient;
 use FitOut\Llm\StructuredRequest;
 use FitOut\Llm\Usage;
@@ -44,7 +45,11 @@ final readonly class LlmLineItemExtractor implements LineItemExtractor
 
         while (true) {
             $attempt++;
-            $response = $this->llm->structured($request);
+            try {
+                $response = $this->llm->structured($request);
+            } catch (LlmOutputTruncated $e) {
+                throw $e->plus($usage); // earlier rounds were paid for too
+            }
             $usage = $usage->plus($response->usage);
             $durationMs += $response->durationMs;
 

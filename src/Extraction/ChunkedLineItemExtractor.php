@@ -47,22 +47,27 @@ final readonly class ChunkedLineItemExtractor implements LineItemExtractor
         try {
             return $this->inner->extract($piece, $context);
         } catch (LlmOutputTruncated $e) {
-            $halves = mb_strlen($piece) > $this->minChars ? self::halve($piece) : null;
-            if ($halves === null) {
-                // A small piece does not overflow by being too long: the answer ran away
-                // (seen in evals: 16k tokens for a document that normally takes 1.2k).
-                // That is a sampling accident, so it gets one more try.
-                if ($retried) {
-                    throw $e;
+            // The overflowing answer was paid for: whatever comes next carries its cost.
+            try {
+                $halves = mb_strlen($piece) > $this->minChars ? self::halve($piece) : null;
+                if ($halves === null) {
+                    // A small piece does not overflow by being too long: the answer ran away
+                    // (seen in evals: 16k tokens for a document that normally takes 1.2k).
+                    // That is a sampling accident, so it gets one more try.
+                    if ($retried) {
+                        throw $e;
+                    }
+
+                    return $this->extractPiece($document, $piece, $offset, $outer, retried: true)->withWastedUsage($e->usage);
                 }
 
-                return $this->extractPiece($document, $piece, $offset, $outer, retried: true);
+                return ExtractionResult::merge([
+                    $this->extractPiece($document, $halves[0], $offset, $outer),
+                    $this->extractPiece($document, $halves[1], $offset + strlen($halves[0]), $outer),
+                ])->withWastedUsage($e->usage);
+            } catch (LlmOutputTruncated $again) {
+                throw $again === $e ? $e : $again->plus($e->usage);
             }
-
-            return ExtractionResult::merge([
-                $this->extractPiece($document, $halves[0], $offset, $outer),
-                $this->extractPiece($document, $halves[1], $offset + strlen($halves[0]), $outer),
-            ]);
         }
     }
 
