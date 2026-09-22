@@ -1,0 +1,20 @@
+PROJECT: 4th Floor Cat A+ Fit-Out, 25 Harbour Lane, London
+BILL No. 2 — MEASURED WORKS
+
+Ref       Description                                                        Qty     Unit
+------------------------------------------------------------------------------------------
+          PARTITIONS
+K10/110   Metal stud partition, 70mm C-stud, 1x15mm SoundBloc each side,
+          to underside of slab, 50mm APR insulation                         312     m2
+K10/115   Ditto but 2x15mm each side, 60 min fire rated                     88      m2
+L40/200   Frameless glazed partition, 12mm toughened, to meeting rooms       46      m2
+
+          CEILINGS
+K40/010   Suspended ceiling, 600x600 mineral tile, 24mm exposed grid         780     m2
+K40/020   MF plasterboard bulkhead to perimeter                              96      m
+
+          FLOOR FINISHES
+M50/010   Carpet tiles 500x500, loop pile                                    690     m2
+M50/030   LVT to tea point and breakout                                      84      m2
+
+          Carried to collection                                                    £ ________

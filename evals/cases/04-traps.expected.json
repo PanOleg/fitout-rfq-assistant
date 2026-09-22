@@ -1,0 +1,7 @@
+{
+  "items": [
+    {"trade": "joinery", "quantity": 1, "unit": "item", "source_contains": "reception desk"},
+    {"trade": "ceilings", "quantity": 1260, "unit": "m2", "source_contains": "1,260"}
+  ],
+  "warnings_about": ["matting", "carpet"]
+}

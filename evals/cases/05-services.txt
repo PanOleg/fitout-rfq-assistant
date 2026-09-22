@@ -1,0 +1,18 @@
+M&E SCHEDULE — 3rd floor, 8 Canal Street, Manchester
+
+MECHANICAL
+ME-01  Four-pipe fan coil units, ceiling void mounted, incl. controls        24 nr
+ME-02  Supply and extract ductwork, galvanised, rectangular                   340 m
+ME-03  Linear slot diffusers, 1200mm                                          36 nr
+
+ELECTRICAL
+EL-01  LED linear pendant, open plan, DALI                                    64 nr
+EL-02  Small power: double switched socket outlets                           96 nr
+EL-03  Cable basket containment, 100mm                                        210 m
+
+PUBLIC HEALTH
+PH-01  Cold water pipework, copper, 22mm, to tea points                       45 m
+
+FIRE
+FP-01  Sprinkler heads, relocate to suit new ceiling layout                   48 nr
+FP-02  Intumescent paint to exposed steel, 60 min                             120 m2

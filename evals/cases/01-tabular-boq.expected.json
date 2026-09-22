@@ -1,0 +1,12 @@
+{
+  "items": [
+    {"trade": "partitions", "quantity": 312, "unit": "m2", "source_contains": "50mm APR insulation"},
+    {"trade": "partitions", "quantity": 88, "unit": "m2", "source_contains": "60 min fire rated"},
+    {"trade": "partitions", "quantity": 46, "unit": "m2", "source_contains": "Frameless glazed partition"},
+    {"trade": "ceilings", "quantity": 780, "unit": "m2", "source_contains": "600x600 mineral tile"},
+    {"trade": "ceilings", "quantity": 96, "unit": "m", "source_contains": "bulkhead"},
+    {"trade": "flooring", "quantity": 690, "unit": "m2", "source_contains": "Carpet tiles"},
+    {"trade": "flooring", "quantity": 84, "unit": "m2", "source_contains": "LVT"}
+  ],
+  "warnings_about": []
+}

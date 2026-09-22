@@ -1,0 +1,10 @@
+{
+  "items": [
+    {"trade": "flooring", "quantity": 520, "unit": "m2", "source_contains": "520 sqm"},
+    {"trade": "doors", "quantity": 14, "unit": "nr", "source_contains": "14 no."},
+    {"trade": "joinery", "quantity": 1, "unit": "item", "source_contains": "1 item"},
+    {"trade": "decoration", "quantity": 640, "unit": "m2", "source_contains": "640 m"},
+    {"trade": "electrical", "quantity": 118, "unit": "nr", "source_contains": "118 nr"}
+  ],
+  "warnings_about": []
+}

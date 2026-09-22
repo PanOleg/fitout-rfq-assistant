@@ -1,0 +1,14 @@
+{
+  "items": [
+    {"trade": "mechanical", "quantity": 24, "unit": "nr", "source_contains": "fan coil"},
+    {"trade": "mechanical", "quantity": 340, "unit": "m", "source_contains": "ductwork"},
+    {"trade": "mechanical", "quantity": 36, "unit": "nr", "source_contains": "diffusers"},
+    {"trade": "electrical", "quantity": 64, "unit": "nr", "source_contains": "pendant"},
+    {"trade": "electrical", "quantity": 96, "unit": "nr", "source_contains": "socket"},
+    {"trade": "electrical", "quantity": 210, "unit": "m", "source_contains": "basket"},
+    {"trade": "plumbing", "quantity": 45, "unit": "m", "source_contains": "pipework"},
+    {"trade": "fire_protection", "quantity": 48, "unit": "nr", "source_contains": "Sprinkler"},
+    {"trade": "fire_protection", "quantity": 120, "unit": "m2", "source_contains": "Intumescent"}
+  ],
+  "warnings_about": []
+}

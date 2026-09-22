@@ -1,0 +1,12 @@
+{
+  "items": [
+    {"trade": "flooring", "quantity": 410, "unit": "m2", "source_contains": "410sqm"},
+    {"trade": "mechanical", "quantity": 6, "unit": "nr", "source_contains": "FCU"},
+    {"trade": "electrical", "quantity": 22, "unit": "nr", "source_contains": "floor boxes"},
+    {"trade": "fire_protection", "quantity": 1, "unit": "item", "source_contains": "fire stopping"},
+    {"trade": "plumbing", "quantity": 4, "unit": "nr", "source_contains": "pans"},
+    {"trade": "plumbing", "quantity": 4, "unit": "nr", "source_contains": "basins"},
+    {"trade": "joinery", "quantity": 180, "unit": "m", "source_contains": "skirting"}
+  ],
+  "warnings_about": []
+}
