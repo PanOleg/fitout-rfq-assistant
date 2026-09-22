@@ -16,5 +16,5 @@ F-04    Type D, recessed, to main entrance                        9     m2
 F-05    Type E trims and thresholds at changes of finish         14     nr
 
 WALL FINISHES
-W-01    Type A to new and existing walls, open plan            860     m2
+W-01    Type A, emulsion to new and existing walls, open plan  860     m2
 W-02    Type A to columns, 3.2 m high x 1.8 m girth
