@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Tests\Feature;
 
 use App\Models\Tender;
+use Database\Seeders\SupplierSeeder;
 use FitOut\Llm\Exceptions\LlmRefused;
 use FitOut\Llm\LlmClient;
 use FitOut\Llm\StructuredRequest;
@@ -17,6 +18,10 @@ use Tests\TestCase;
 final class TenderApiTest extends TestCase
 {
     use RefreshDatabase;
+
+    protected bool $seed = true;
+
+    protected string $seeder = SupplierSeeder::class;
 
     private const DOCUMENT = <<<'DOC'
     LEVEL 3 CAT A+ FIT-OUT — SCHEDULE OF WORKS

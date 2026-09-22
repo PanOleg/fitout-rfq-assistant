@@ -5,13 +5,13 @@ declare(strict_types=1);
 namespace App\Providers;
 
 use Anthropic\Client;
+use App\Suppliers\EloquentSupplierDirectory;
 use FitOut\Extraction\CachingLineItemExtractor;
 use FitOut\Extraction\ChunkedLineItemExtractor;
 use FitOut\Extraction\LineItemExtractor;
 use FitOut\Extraction\LlmLineItemExtractor;
 use FitOut\Llm\Anthropic\AnthropicLlmClient;
 use FitOut\Llm\LlmClient;
-use FitOut\Suppliers\ArraySupplierDirectory;
 use FitOut\Suppliers\SupplierDirectory;
 use FitOut\Suppliers\SupplierMatcher;
 use Illuminate\Contracts\Foundation\Application;
@@ -38,7 +38,7 @@ class AppServiceProvider extends ServiceProvider
             config('rfq.llm.model').':'.config('rfq.llm.effort'),
         ));
 
-        $this->app->singleton(SupplierDirectory::class, fn (): SupplierDirectory => new ArraySupplierDirectory(config('suppliers')));
+        $this->app->singleton(SupplierDirectory::class, EloquentSupplierDirectory::class);
 
         $this->app->bind(SupplierMatcher::class, fn (Application $app): SupplierMatcher => new SupplierMatcher(
             $app->make(SupplierDirectory::class),

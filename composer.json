@@ -47,7 +47,8 @@
             "@php -r \"file_exists('.env') || copy('.env.example', '.env');\"",
             "@php artisan key:generate",
             "@php -r \"file_exists('database/database.sqlite') || touch('database/database.sqlite');\"",
-            "@php artisan migrate --force"
+            "@php artisan migrate --force",
+            "@php artisan db:seed --class=SupplierSeeder --force"
         ],
         "test": [
             "@php artisan config:clear --ansi @no_additional_args",
