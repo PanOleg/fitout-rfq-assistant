@@ -24,6 +24,7 @@ final class TenderResource extends JsonResource
             'name' => $this->name,
             'region' => $this->region,
             'return_by' => $this->return_by->toDateString(),
+            'source_filename' => $this->source_filename,
             'status' => $this->status->value,
             'failure' => $this->failure,
             'packages' => $result === null ? null : array_map(static fn (WorkPackage $p): array => [

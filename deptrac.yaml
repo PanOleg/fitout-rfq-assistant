@@ -28,6 +28,10 @@ deptrac:
       collectors:
         - type: directory
           value: src/Evals/.*
+    - name: Ingestion
+      collectors:
+        - type: directory
+          value: src/Ingestion/.*
   ruleset:
     Domain: ~
     Llm: ~
@@ -35,3 +39,4 @@ deptrac:
     Suppliers: [Domain]
     Rfq: [Domain, Suppliers]
     Evals: [Domain, Extraction]
+    Ingestion: ~

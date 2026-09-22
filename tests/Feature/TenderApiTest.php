@@ -11,7 +11,9 @@ use FitOut\Llm\LlmClient;
 use FitOut\Llm\StructuredRequest;
 use FitOut\Llm\StructuredResponse;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Http\UploadedFile;
 use PHPUnit\Framework\Attributes\Test;
+use Tests\Support\MinimalPdf;
 use Tests\Support\ScriptedLlmClient;
 use Tests\TestCase;
 
@@ -82,6 +84,36 @@ final class TenderApiTest extends TestCase
         $this->assertSame($first->json('data.id'), $second->json('data.id'));
         $this->assertCount(1, $llm->requests);
         $this->assertSame(1, Tender::query()->count());
+    }
+
+    #[Test]
+    public function a_pdf_upload_is_read_as_text_and_extracted(): void
+    {
+        $llm = new ScriptedLlmClient(self::ANSWER);
+        $this->app->instance(LlmClient::class, $llm);
+        $pdf = UploadedFile::fake()->createWithContent('schedule.pdf', MinimalPdf::withLines(explode("\n", self::DOCUMENT)));
+
+        $payload = ['file' => $pdf] + $this->payload();
+        unset($payload['document']);
+        $id = $this->post('/api/tenders', $payload, ['Accept' => 'application/json'])->assertAccepted()->json('data.id');
+
+        $this->assertStringContainsString('Carpet tiles 500x500, open plan                  640 m2', $llm->requests[0]->messages[0]['content']);
+        $this->getJson("/api/tenders/{$id}")
+            ->assertJsonPath('data.source_filename', 'schedule.pdf')
+            ->assertJsonCount(2, 'data.packages');
+    }
+
+    #[Test]
+    public function a_scanned_pdf_is_refused_with_a_reason(): void
+    {
+        $payload = ['file' => UploadedFile::fake()->createWithContent('scan.pdf', MinimalPdf::withLines([]))] + $this->payload();
+        unset($payload['document']);
+
+        $this->post('/api/tenders', $payload, ['Accept' => 'application/json'])
+            ->assertUnprocessable()
+            ->assertJsonPath('errors.file.0', 'The PDF has no text layer — it looks scanned. Scanned documents need OCR, which is not supported yet.');
+
+        $this->assertSame(0, Tender::query()->count());
     }
 
     #[Test]

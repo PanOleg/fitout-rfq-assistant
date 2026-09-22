@@ -15,7 +15,9 @@
         "php": "^8.4",
         "anthropic-ai/sdk": "^0.51.0",
         "laravel/framework": "^13.17",
-        "laravel/tinker": "^3.0"
+        "laravel/tinker": "^3.0",
+        "openspout/openspout": "^5.11",
+        "smalot/pdfparser": "^2.12"
     },
     "require-dev": {
         "deptrac/deptrac": "^4.7",

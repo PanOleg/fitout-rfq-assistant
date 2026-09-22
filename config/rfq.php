@@ -19,4 +19,6 @@ return [
     'regions' => ['london', 'south-east', 'midlands', 'north-west', 'scotland'],
 
     'max_document_chars' => 200_000,
+
+    'max_upload_kb' => 20_480,
 ];

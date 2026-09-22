@@ -10,11 +10,14 @@ use App\Jobs\ExtractTender;
 use App\Models\Tender;
 use App\Models\TenderStatus;
 use FitOut\Domain\WorkPackage;
+use FitOut\Ingestion\DocumentText;
+use FitOut\Ingestion\UnreadableDocument;
 use FitOut\Rfq\RfqComposer;
 use FitOut\Rfq\RfqDraft;
 use FitOut\Suppliers\SupplierMatcher;
 use Illuminate\Database\UniqueConstraintViolationException;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Http\UploadedFile;
 
 final class TenderController
 {
@@ -28,6 +31,24 @@ final class TenderController
     {
         $key = $request->header('Idempotency-Key');
         $fields = $request->safe()->only(['name', 'region', 'return_by', 'document']);
+
+        $file = $request->file('file');
+        if ($file instanceof UploadedFile) {
+            try {
+                /** @var 'pdf'|'xlsx'|'csv'|'txt' $format validated by StoreTenderRequest */
+                $format = strtolower($file->getClientOriginalExtension());
+                $fields['document'] = DocumentText::fromFile($file->getRealPath(), $format);
+            } catch (UnreadableDocument $e) {
+                return response()->json(['message' => $e->getMessage(), 'errors' => ['file' => [$e->getMessage()]]], 422);
+            }
+            if (mb_strlen($fields['document']) > config('rfq.max_document_chars')) {
+                $message = 'The file contains more than '.config('rfq.max_document_chars').' characters of text.';
+
+                return response()->json(['message' => $message, 'errors' => ['file' => [$message]]], 422);
+            }
+            $fields['source_filename'] = $file->getClientOriginalName();
+        }
+
         $fingerprint = hash('sha256', (string) json_encode($fields));
 
         if ($key !== null && ($existing = Tender::query()->where('idempotency_key', $key)->first()) !== null) {
