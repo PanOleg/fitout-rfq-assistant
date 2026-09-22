@@ -120,6 +120,23 @@ final class TenderApiTest extends TestCase
     }
 
     #[Test]
+    public function a_real_tender_can_be_drafted_into_an_eval_case(): void
+    {
+        $this->app->instance(LlmClient::class, new ScriptedLlmClient(self::ANSWER));
+        $id = $this->postJson('/api/tenders', $this->payload())->json('data.id');
+        $dir = sys_get_temp_dir().'/'.uniqid('drafts-', true);
+
+        $this->artisan('rfq:draft-case', ['tender' => $id, 'slug' => 'Level 3 schedule', '--dir' => $dir])->assertSuccessful();
+
+        $this->assertSame(self::DOCUMENT, file_get_contents("{$dir}/07-level-3-schedule.txt"));
+        $this->assertSame(['items' => [], 'warnings_about' => []], json_decode((string) file_get_contents("{$dir}/07-level-3-schedule.expected.json"), true), 'expectations are left for a person');
+        $this->assertStringContainsString('flooring 640 m2', (string) file_get_contents("{$dir}/07-level-3-schedule.model-output.md"));
+
+        array_map(unlink(...), glob("{$dir}/*") ?: []);
+        rmdir($dir);
+    }
+
+    #[Test]
     public function reusing_an_idempotency_key_for_a_different_document_is_rejected(): void
     {
         $llm = new ScriptedLlmClient(self::ANSWER);
