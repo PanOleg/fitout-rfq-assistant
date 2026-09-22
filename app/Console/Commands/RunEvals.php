@@ -20,6 +20,7 @@ use FitOut\Llm\Exceptions\LlmException;
 use FitOut\Llm\Exceptions\LlmOutputTruncated;
 use FitOut\Llm\Usage;
 use Illuminate\Console\Command;
+use Throwable;
 
 /**
  * Runs every case in evals/cases against the live model, uncached, and
@@ -75,13 +76,26 @@ final class RunEvals extends Command
         $repeat = max(1, (int) $this->option('repeat'));
         /** @var array<string, non-empty-list<RunSummary>> $groups every group gets at least one run */
         $groups = [];
+        $stopped = null;
         foreach ($models as $model) {
             foreach ($efforts as $effort) {
-                for ($i = 1; $i <= $repeat; $i++) {
-                    /** @var 'low'|'medium'|'high'|'xhigh'|'max' $effort */
-                    $groups["{$model}|{$effort}"][] = $this->evaluate($scorer, $model, $effort, $cases);
+                for ($i = 1; $i <= $repeat && $stopped === null; $i++) {
+                    try {
+                        /** @var 'low'|'medium'|'high'|'xhigh'|'max' $effort */
+                        $groups["{$model}|{$effort}"][] = $this->evaluate($scorer, $model, $effort, $cases);
+                    } catch (Throwable $e) {
+                        // Not a model failure (those are scored above) but the run itself: billing,
+                        // auth, a bad request. Stop, and keep the table of the runs that finished.
+                        $stopped = $e::class.': '.$e->getMessage();
+                    }
                 }
             }
+        }
+        if ($stopped !== null) {
+            $this->error("Stopped: {$stopped}");
+        }
+        if ($groups === []) {
+            return self::FAILURE;
         }
         $runs = array_merge(...array_values($groups));
 
@@ -97,7 +111,7 @@ final class RunEvals extends Command
             $this->info("Comparison: {$path} (commit it with the decision it supports)");
         }
 
-        return array_all($runs, fn (RunSummary $r): bool => $r->recall >= (float) $this->option('min-recall')) ? self::SUCCESS : self::FAILURE;
+        return $stopped === null && array_all($runs, fn (RunSummary $r): bool => $r->recall >= (float) $this->option('min-recall')) ? self::SUCCESS : self::FAILURE;
     }
 
     /**
