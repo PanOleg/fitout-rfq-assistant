@@ -11,8 +11,8 @@ use Psr\SimpleCache\CacheInterface;
  * estimator, a retry after a timeout. Identical input under the same prompt
  * version and model gets the stored result instead of a second bill.
  *
- * The key includes the prompt version, so changing the prompt invalidates the
- * cache by construction; nobody has to remember to flush it.
+ * The key includes the prompt and validator versions, so changing either
+ * invalidates the cache by construction; nobody has to remember to flush it.
  */
 final readonly class CachingLineItemExtractor implements LineItemExtractor
 {
@@ -49,6 +49,6 @@ final readonly class CachingLineItemExtractor implements LineItemExtractor
     {
         $normalised = (string) preg_replace('/\s+/u', ' ', trim($document));
 
-        return 'extraction:'.hash('sha256', ExtractionPrompt::VERSION."\0".$this->modelKey."\0".$normalised);
+        return 'extraction:'.hash('sha256', ExtractionPrompt::VERSION."\0".GroundingValidator::VERSION."\0".$this->modelKey."\0".$normalised);
     }
 }
