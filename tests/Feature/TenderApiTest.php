@@ -19,6 +19,7 @@ use FitOut\Llm\StructuredResponse;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Queue;
+use Illuminate\Support\Facades\Storage;
 use PHPUnit\Framework\Attributes\Test;
 use Tests\Support\MinimalPdf;
 use Tests\Support\ScriptedLlmClient;
@@ -31,6 +32,12 @@ final class TenderApiTest extends TestCase
     protected bool $seed = true;
 
     protected string $seeder = SupplierSeeder::class;
+
+    protected function setUp(): void
+    {
+        parent::setUp();
+        Storage::fake('local'); // uploads land here, not in storage/app
+    }
 
     private const DOCUMENT = <<<'DOC'
     LEVEL 3 CAT A+ FIT-OUT — SCHEDULE OF WORKS
