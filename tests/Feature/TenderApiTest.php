@@ -246,6 +246,28 @@ final class TenderApiTest extends TestCase
     }
 
     #[Test]
+    public function with_a_token_configured_the_api_needs_it(): void
+    {
+        config(['rfq.access_token' => 'secret-token']);
+        $this->app->instance(LlmClient::class, new ScriptedLlmClient(self::ANSWER));
+
+        $this->postJson('/api/tenders', $this->payload())->assertUnauthorized();
+        $this->postJson('/api/tenders', $this->payload(), ['Authorization' => 'Bearer wrong'])->assertUnauthorized();
+        $this->postJson('/api/tenders', $this->payload(), ['Authorization' => 'Bearer secret-token'])->assertAccepted();
+    }
+
+    #[Test]
+    public function without_a_token_production_is_closed(): void
+    {
+        config(['rfq.access_token' => null]);
+        $this->app->detectEnvironment(static fn (): string => 'production');
+
+        $this->postJson('/api/tenders', $this->payload())
+            ->assertUnauthorized()
+            ->assertJsonPath('message', 'RFQ_ACCESS_TOKEN is not set; the service is closed until it is.');
+    }
+
+    #[Test]
     public function input_is_validated_before_anything_is_spent(): void
     {
         $this->postJson('/api/tenders', ['region' => 'atlantis', 'return_by' => '2020-01-01', 'document' => 'short'])
