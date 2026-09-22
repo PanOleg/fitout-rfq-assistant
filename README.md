@@ -1,5 +1,10 @@
 # Fit-out RFQ Assistant
 
+[![ci](https://github.com/PanOleg/fitout-rfq-assistant/actions/workflows/ci.yml/badge.svg)](https://github.com/PanOleg/fitout-rfq-assistant/actions/workflows/ci.yml)
+![PHP 8.4](https://img.shields.io/badge/PHP-8.4-777BB4)
+![Laravel 13](https://img.shields.io/badge/Laravel-13-FF2D20)
+![PHPStan level 8](https://img.shields.io/badge/PHPStan-level%208-brightgreen)
+
 A main contractor on a UK office fit-out receives the scope as a bill of quantities,
 a few pages of Employer's Requirements, or an email from site. Before anything can
 be priced, someone splits it into trade packages and sends each package to three
@@ -107,3 +112,9 @@ php artisan rfq:eval --effort=low               # compare a cheaper setting
 Built with Claude Code. Commits are co-authored and marked as such. Trust in the code
 rests on the tests, static analysis, layer rules and the eval harness, not on who typed it.
 The commit history follows the order the system was designed in.
+
+The repo carries its own agent setup: [`CLAUDE.md`](CLAUDE.md) holds the project rules, and
+three skills in [`.claude/skills`](.claude/skills) cover the quality loop:
+`add-eval-case`, which writes expectations from the document rather than from model output;
+`prompt-change`, which bumps the version and compares evals before and after; and
+`review-extraction`, which sorts each failure into missed, invented or misclassified.

@@ -1,0 +1,37 @@
+name: evals
+
+# Live extraction evals against the Claude API. Manual only: every run costs money.
+on:
+  workflow_dispatch:
+    inputs:
+      effort:
+        description: 'Effort (low | medium | high | xhigh | max)'
+        default: 'medium'
+      case:
+        description: 'Only cases whose name contains this (empty = all)'
+        default: ''
+
+jobs:
+  evals:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.4'
+          coverage: none
+
+      - run: composer install --no-interaction --no-progress --prefer-dist
+      - run: cp .env.example .env && php artisan key:generate
+
+      - name: Run evals
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+        run: php artisan rfq:eval --effort="${{ inputs.effort }}" ${{ inputs.case && format('--case={0}', inputs.case) || '' }}
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: eval-report-${{ inputs.effort }}
+          path: storage/evals/*.json
