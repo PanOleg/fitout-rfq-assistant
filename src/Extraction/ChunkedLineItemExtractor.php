@@ -9,7 +9,8 @@ use FitOut\Llm\Exceptions\LlmOutputTruncated;
 /**
  * Large bills are where the tool saves the most time, and they are also the
  * ones that overflow a single call. This reads them in pieces and merges the
- * results.
+ * results. Each piece after the first is given the title, table header and
+ * section headings above it (PieceContext), so it is not read blind.
  *
  * If a piece still produces more output than one call allows, it is halved at
  * a line break and each half read again, down to $minChars. Only a piece that
@@ -24,25 +25,35 @@ final readonly class ChunkedLineItemExtractor implements LineItemExtractor
         private int $minChars = 2_000,
     ) {}
 
-    public function extract(string $document): ExtractionResult
+    public function extract(string $document, string $context = ''): ExtractionResult
     {
-        return ExtractionResult::merge(array_map(
-            $this->extractPiece(...),
-            (new DocumentChunker($this->maxChars))->split($document),
-        ));
+        $parts = [];
+        $offset = 0;
+        foreach ((new DocumentChunker($this->maxChars))->split($document) as $piece) {
+            $parts[] = $this->extractPiece($document, $piece, $offset, $context);
+            $offset += strlen($piece);
+        }
+
+        return ExtractionResult::merge($parts);
     }
 
-    private function extractPiece(string $piece): ExtractionResult
+    /** $offset is where $piece starts in $document; every piece after the first is given the context before it. */
+    private function extractPiece(string $document, string $piece, int $offset, string $outer): ExtractionResult
     {
+        $context = $offset === 0 ? $outer : PieceContext::before($document, $offset);
+
         try {
-            return $this->inner->extract($piece);
+            return $this->inner->extract($piece, $context);
         } catch (LlmOutputTruncated $e) {
             $halves = mb_strlen($piece) > $this->minChars ? self::halve($piece) : null;
             if ($halves === null) {
                 throw $e;
             }
 
-            return ExtractionResult::merge(array_map($this->extractPiece(...), $halves));
+            return ExtractionResult::merge([
+                $this->extractPiece($document, $halves[0], $offset, $outer),
+                $this->extractPiece($document, $halves[1], $offset + strlen($halves[0]), $outer),
+            ]);
         }
     }
 

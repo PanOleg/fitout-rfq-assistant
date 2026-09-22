@@ -14,7 +14,7 @@ use FitOut\Domain\Unit;
  */
 final class ExtractionPrompt
 {
-    public const VERSION = 'v1';
+    public const VERSION = 'v2';
 
     public static function system(): string
     {
@@ -55,9 +55,23 @@ final class ExtractionPrompt
         PROMPT;
     }
 
-    public static function userMessage(string $document): string
+    /**
+     * Without context this is the v1 message byte for byte: v2 only changes what a
+     * piece of a long document sees.
+     */
+    public static function userMessage(string $document, string $context = ''): string
     {
-        return "Extract the measured items from this document.\n\n<document>\n{$document}\n</document>";
+        if (trim($context) === '') {
+            return "Extract the measured items from this document.\n\n<document>\n{$document}\n</document>";
+        }
+
+        return "The document below is one piece of a longer file. <context> holds lines from earlier in\n"
+            ."the file — its title, and the section headings and table header that were in force where\n"
+            ."this piece begins — so you can tell which trade and which columns a line belongs to. Items\n"
+            ."in <context> were extracted with the earlier piece: take items only from <document>, and\n"
+            ."quote only from <document>.\n\n"
+            ."<context>\n{$context}\n</context>\n\n"
+            ."Extract the measured items from this document.\n\n<document>\n{$document}\n</document>";
     }
 
     /** @return array<string, mixed> */

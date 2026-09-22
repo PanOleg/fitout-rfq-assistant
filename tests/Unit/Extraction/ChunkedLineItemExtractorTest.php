@@ -39,6 +39,25 @@ final class ChunkedLineItemExtractorTest extends TestCase
     }
 
     #[Test]
+    public function later_pieces_see_the_headings_above_them_but_cannot_quote_them(): void
+    {
+        $document = "FLOOR FINISHES\nF-01  Type A to open plan   585 m2\n\nF-02  Type B to WCs   44 m2\n";
+        $llm = new ScriptedLlmClient(
+            ['items' => [$this->item('flooring', 585, 'F-01  Type A to open plan   585 m2')], 'warnings' => []],
+            // Second piece: one item from its own text, one lifted from the context.
+            ['items' => [$this->item('flooring', 44, 'F-02  Type B to WCs   44 m2'), $this->item('flooring', 585, 'F-01  Type A to open plan   585 m2')], 'warnings' => []],
+            ['items' => [$this->item('flooring', 44, 'F-02  Type B to WCs   44 m2')], 'warnings' => []],
+        );
+
+        $result = (new ChunkedLineItemExtractor(new LlmLineItemExtractor($llm), maxChars: 60))->extract($document);
+
+        $this->assertStringNotContainsString('<context>', $llm->requests[0]->messages[0]['content']);
+        $this->assertStringContainsString("<context>\nFLOOR FINISHES\n</context>", $llm->requests[1]->messages[0]['content']);
+        $this->assertSame([585.0, 44.0], array_map(static fn ($i): float => $i->quantity->value, $result->items), 'F-01 is not counted twice');
+        $this->assertStringContainsString('not a verbatim quote', $llm->requests[2]->messages[2]['content']);
+    }
+
+    #[Test]
     public function a_piece_that_overflows_the_answer_is_halved_and_read_again(): void
     {
         $inner = new class implements LineItemExtractor
@@ -46,7 +65,7 @@ final class ChunkedLineItemExtractorTest extends TestCase
             /** @var list<string> */
             public array $seen = [];
 
-            public function extract(string $document): ExtractionResult
+            public function extract(string $document, string $context = ''): ExtractionResult
             {
                 $this->seen[] = $document;
                 if (substr_count($document, 'm2') > 1) {

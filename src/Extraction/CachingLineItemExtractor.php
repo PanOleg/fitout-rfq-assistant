@@ -24,9 +24,9 @@ final readonly class CachingLineItemExtractor implements LineItemExtractor
         private int $ttlSeconds = 30 * 24 * 3600,
     ) {}
 
-    public function extract(string $document): ExtractionResult
+    public function extract(string $document, string $context = ''): ExtractionResult
     {
-        $key = $this->key($document);
+        $key = $this->key($context."\0".$document);
 
         $hit = $this->cache->get($key);
         if (is_array($hit)) {
@@ -34,7 +34,7 @@ final readonly class CachingLineItemExtractor implements LineItemExtractor
             return ExtractionResult::fromArray($hit)->servedFromCache();
         }
 
-        $result = $this->inner->extract($document);
+        $result = $this->inner->extract($document, $context);
 
         // Only clean results are worth replaying; a result with rejected items
         // should get a fresh attempt next time.

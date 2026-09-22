@@ -6,6 +6,7 @@ namespace Tests\Feature;
 
 use App\Models\Tender;
 use Database\Seeders\SupplierSeeder;
+use FitOut\Extraction\ExtractionPrompt;
 use FitOut\Llm\Exceptions\LlmRefused;
 use FitOut\Llm\LlmClient;
 use FitOut\Llm\StructuredRequest;
@@ -54,7 +55,7 @@ final class TenderApiTest extends TestCase
             ->assertJsonPath('data.packages.0.trade', 'partitions')
             ->assertJsonPath('data.packages.1.trade', 'flooring')
             ->assertJsonCount(2, 'data.packages.1.items')
-            ->assertJsonPath('data.extraction.prompt_version', 'v1')
+            ->assertJsonPath('data.extraction.prompt_version', ExtractionPrompt::VERSION)
             ->assertJsonPath('data.extraction.cost_usd', 0.01) // 1000 in × $5/M + 200 out × $25/M
             ->assertJsonMissingPath('data.document');
     }

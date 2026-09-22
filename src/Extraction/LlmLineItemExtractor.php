@@ -24,11 +24,12 @@ final readonly class LlmLineItemExtractor implements LineItemExtractor
         private int $maxRepairs = 2,
     ) {}
 
-    public function extract(string $document): ExtractionResult
+    /** Quotes are validated against $document alone, so an item taken from $context is rejected. */
+    public function extract(string $document, string $context = ''): ExtractionResult
     {
         $request = new StructuredRequest(
             system: ExtractionPrompt::system(),
-            messages: [['role' => 'user', 'content' => ExtractionPrompt::userMessage($document)]],
+            messages: [['role' => 'user', 'content' => ExtractionPrompt::userMessage($document, $context)]],
             schema: ExtractionPrompt::schema(),
         );
 
