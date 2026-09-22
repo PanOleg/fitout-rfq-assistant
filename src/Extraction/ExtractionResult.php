@@ -24,7 +24,13 @@ final readonly class ExtractionResult
         public Usage $usage,
         public int $attempts,
         public int $durationMs,
+        public bool $fromCache = false,
     ) {}
+
+    public function servedFromCache(): self
+    {
+        return new self($this->items, $this->warnings, $this->rejected, $this->model, $this->promptVersion, $this->usage, $this->attempts, $this->durationMs, true);
+    }
 
     public function costUsd(): ?float
     {
@@ -44,6 +50,7 @@ final readonly class ExtractionResult
             'cost_usd' => $this->costUsd(),
             'attempts' => $this->attempts,
             'duration_ms' => $this->durationMs,
+            'from_cache' => $this->fromCache,
         ];
     }
 
