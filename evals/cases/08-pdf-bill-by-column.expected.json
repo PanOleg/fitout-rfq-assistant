@@ -1,0 +1,217 @@
+{
+    "items": [
+        {
+            "trade": "partitions",
+            "quantity": 105,
+            "unit": "m2",
+            "source_contains": "area B-01"
+        },
+        {
+            "trade": "partitions",
+            "quantity": 54,
+            "unit": "m2",
+            "source_contains": "area B-02"
+        },
+        {
+            "trade": "partitions",
+            "quantity": 32,
+            "unit": "m2",
+            "source_contains": "area B-03"
+        },
+        {
+            "trade": "partitions",
+            "quantity": 286,
+            "unit": "m2",
+            "source_contains": "area B-04"
+        },
+        {
+            "trade": "partitions",
+            "quantity": 31,
+            "unit": "m2",
+            "source_contains": "area B-05"
+        },
+        {
+            "trade": "partitions",
+            "quantity": 258,
+            "unit": "m2",
+            "source_contains": "area B-06"
+        },
+        {
+            "trade": "ceilings",
+            "quantity": 560,
+            "unit": "m2",
+            "source_contains": "area B-07"
+        },
+        {
+            "trade": "ceilings",
+            "quantity": 65,
+            "unit": "m2",
+            "source_contains": "area B-08"
+        },
+        {
+            "trade": "ceilings",
+            "quantity": 53,
+            "unit": "m2",
+            "source_contains": "area B-09"
+        },
+        {
+            "trade": "ceilings",
+            "quantity": 88,
+            "unit": "m",
+            "source_contains": "area B-10"
+        },
+        {
+            "trade": "ceilings",
+            "quantity": 55,
+            "unit": "m2",
+            "source_contains": "area B-11"
+        },
+        {
+            "trade": "ceilings",
+            "quantity": 128,
+            "unit": "m",
+            "source_contains": "area B-12"
+        },
+        {
+            "trade": "flooring",
+            "quantity": 596,
+            "unit": "m2",
+            "source_contains": "area B-13"
+        },
+        {
+            "trade": "flooring",
+            "quantity": 7,
+            "unit": "m2",
+            "source_contains": "area B-14"
+        },
+        {
+            "trade": "flooring",
+            "quantity": 78,
+            "unit": "m2",
+            "source_contains": "area B-15"
+        },
+        {
+            "trade": "flooring",
+            "quantity": 71,
+            "unit": "m2",
+            "source_contains": "area B-16"
+        },
+        {
+            "trade": "flooring",
+            "quantity": 19,
+            "unit": "m2",
+            "source_contains": "area B-17"
+        },
+        {
+            "trade": "flooring",
+            "quantity": 243,
+            "unit": "m2",
+            "source_contains": "area B-18"
+        },
+        {
+            "trade": "electrical",
+            "quantity": 13,
+            "unit": "nr",
+            "source_contains": "area B-19"
+        },
+        {
+            "trade": "electrical",
+            "quantity": 13,
+            "unit": "nr",
+            "source_contains": "area B-20"
+        },
+        {
+            "trade": "electrical",
+            "quantity": 13,
+            "unit": "nr",
+            "source_contains": "area B-21"
+        },
+        {
+            "trade": "electrical",
+            "quantity": 168,
+            "unit": "m",
+            "source_contains": "area B-22"
+        },
+        {
+            "trade": "electrical",
+            "quantity": 7,
+            "unit": "nr",
+            "source_contains": "area B-23"
+        },
+        {
+            "trade": "electrical",
+            "quantity": 17,
+            "unit": "nr",
+            "source_contains": "area B-24"
+        },
+        {
+            "trade": "mechanical",
+            "quantity": 119,
+            "unit": "m",
+            "source_contains": "area B-25"
+        },
+        {
+            "trade": "mechanical",
+            "quantity": 16,
+            "unit": "nr",
+            "source_contains": "area B-26"
+        },
+        {
+            "trade": "mechanical",
+            "quantity": 25,
+            "unit": "nr",
+            "source_contains": "area B-27"
+        },
+        {
+            "trade": "mechanical",
+            "quantity": 2,
+            "unit": "nr",
+            "source_contains": "area B-28"
+        },
+        {
+            "trade": "mechanical",
+            "quantity": 26,
+            "unit": "nr",
+            "source_contains": "area B-29"
+        },
+        {
+            "trade": "mechanical",
+            "quantity": 146,
+            "unit": "m",
+            "source_contains": "area B-30"
+        },
+        {
+            "trade": "doors",
+            "quantity": 2,
+            "unit": "nr",
+            "source_contains": "area B-31"
+        },
+        {
+            "trade": "doors",
+            "quantity": 6,
+            "unit": "nr",
+            "source_contains": "area B-32"
+        },
+        {
+            "trade": "doors",
+            "quantity": 2,
+            "unit": "nr",
+            "source_contains": "area B-33"
+        },
+        {
+            "trade": "doors",
+            "quantity": 2,
+            "unit": "nr",
+            "source_contains": "area B-34"
+        },
+        {
+            "trade": "doors",
+            "quantity": 14,
+            "unit": "nr",
+            "source_contains": "area B-35"
+        }
+    ],
+    "warnings_about": [
+        "nosings"
+    ]
+}

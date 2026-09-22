@@ -1,0 +1,387 @@
+BILL No. 3 - CAT A+ FIT-OUT, LEVELS 1 TO 4, 12 WHARF ROAD, BRISTOL
+Measured works. Quantities are net and measured in accordance with NRM2.
+
+PRELIMINARY NOTES
+The contractor is to allow for all labours, fixings, waste, protection and cleaning in the rates. Working hours are 08:00 to 18:00 on weekdays; noisy works outside these hours are to be agreed with the landlord in advance. The building remains partly occupied throughout, and access routes, lifts and loading bay bookings are to be coordinated with the facilities manager. All materials are to be new and as specified; alternatives require written approval. The contractor is to check all quantities against the drawings before pricing and report discrepancies within five working days of receipt of this bill.
+Drawings referred to are listed in Appendix A. Specification clauses are referenced in the left-hand column where they apply. Items marked Type are defined in the finishes legend on drawing A-210 and are to be priced as described there.
+
+Ref       Description                                                             Qty     Unit
+------------------------------------------------------------------------------------------------
+
+LEVEL 1
+ALL QUANTITIES PROVISIONAL AND SUBJECT TO REMEASURE
+
+PARTITIONS AND DRYLINING
+Partitions are to achieve the acoustic ratings on drawing A-310. Head details to allow for slab deflection. Board joints taped and filled ready for decoration.
+K10/101   Type P3 as specification clause K10/3.4, area 1-01                      75      m2
+K10/102   Type P3 as specification clause K10/3.4, area 1-02                      58      m2
+K10/103   Frameless glazed screen, 12mm toughened, area 1-03                      16      m2
+K10/104   Plasterboard lining on resilient bars to existing columns, area 1-04    22      m2
+K10/105   Plasterboard lining on resilient bars to
+          existing columns, area 1-05                                             10      m2
+K10/106   Frameless glazed screen, 12mm toughened, area 1-06                      11      m2
+
+SUSPENDED CEILINGS
+Grid to be installed level to within tolerance. Tiles are to be cut neatly at perimeters and around services. Access panels as required by the services engineer.
+K40/101   Suspended ceiling, 600x600 mineral tile on 24mm exposed grid, area 1-07  229     m2
+K40/102   Suspended ceiling, 600x600 mineral tile on 24mm exposed grid, area 1-08  206     m2
+K40/103   Type C2 moisture resistant tile, area 1-09                              56      m2
+K40/104   Type C4 as clause K40/2.1, area 1-10                                    65      m2
+
+DOORS AND IRONMONGERY
+Door leaves to be factory finished. Ironmongery to be submitted for approval before ordering. Fire doors certified to the stated rating.
+L20/101   Type D5 as door schedule, area 1-11                                     1       nr
+L20/102   FD30 doorset, single leaf, with door closer, area 1-12                  8       nr
+L20/103   Solid core timber doorset with vision panel, ironmongery set IM-02, area 1-13  3       nr
+L20/104   FD30 doorset, single leaf, with door closer, area 1-14                  9       nr
+L20/105   FD30 doorset, single leaf, with door closer, area 1-15                  9       nr
+L20/106   FD30 doorset, single leaf, with door closer, area 1-16                  7       nr
+
+JOINERY
+All joinery to be manufactured from FSC certified material. Shop drawings to be submitted before manufacture. Edges to be lipped.
+N10/101   MDF skirting, 100mm, painted, area 1-17                                 145     m
+N10/102   Vanity unit with solid surface top, area 1-18                           3       nr
+N10/103   Vanity unit with solid surface top, area 1-19                           2       nr
+N10/104   Tea point base and wall units with quartz worktop, area 1-20            1       item
+N10/105   MDF skirting, 100mm, painted, area 1-21                                 129     m
+N10/106   MDF skirting, 100mm, painted, area 1-22                                 156     m
+
+FLOOR FINISHES
+Subfloor to be prepared to the manufacturer's requirements. Transitions between finishes to be flush. Samples of each type to be approved before laying.
+M50/101   Luxury vinyl tile to tea point and breakout, area 1-23                  54      m2
+M50/102   Type F2 to WCs and cleaner's store, area 1-24                           34      m2
+M50/103   Recessed entrance matting, area 1-25                                    5       m2
+M50/104   Carpet tiles 500x500, loop pile, area 1-26                              277     m2
+M50/105   Luxury vinyl tile to tea point and breakout, area 1-27                  87      m2
+
+DECORATION
+Surfaces to be prepared, filled and sanded before the mist coat. Colours as the finishes legend. Protect adjacent finishes throughout.
+M60/101   Type W3 to meeting room walls, area 1-28                                80      m2
+M60/102   Type W3 to meeting room walls, area 1-29                                47      m2
+M60/103   Manifestation to glazed screens, two bands, area 1-30                   55      m
+M60/104   Type W3 to meeting room walls, area 1-31                                76      m2
+M60/199   Feature wall tiling to reception, 3 walls at 12 m2 per wall
+
+MECHANICAL SERVICES
+All mechanical work to be commissioned and witnessed. Existing services to be isolated before strip out. Labels to be fixed to all new equipment.
+U10/101   Type M4 as mechanical schedule, area 1-32                               10      nr
+U10/102   Linear slot diffuser, 1200mm, area 1-33                                 32      nr
+U10/103   Linear slot diffuser, 1200mm, area 1-34                                 23      nr
+U10/104   Four-pipe fan coil unit, ceiling void mounted, area 1-35                12      nr
+
+ELECTRICAL SERVICES
+All electrical work to comply with BS 7671. Circuits to be tested and certified. Emergency lighting to be integrated with the new layout.
+V20/101   Cable basket containment, 100mm, area 1-36                              196     m
+V20/102   LED linear pendant, DALI dimmable, area 1-37                            45      nr
+V20/103   LED linear pendant, DALI dimmable, area 1-38                            46      nr
+V20/104   Cable basket containment, 100mm, area 1-39                              160     m
+V20/105   Type E7 luminaire as lighting schedule, area 1-40                       16      nr
+V20/106   Type E7 luminaire as lighting schedule, area 1-41                       16      nr
+V20/107   Cable basket containment, 100mm, area 1-42                              60      m
+
+PUBLIC HEALTH
+Sanitaryware to be white vitreous china unless noted. Pipework to be pressure tested before concealment. Isolation valves to each appliance.
+R10/101   WC pan and cistern, close coupled, area 1-43                            7       nr
+R10/102   WC pan and cistern, close coupled, area 1-44                            7       nr
+R10/103   Cold water pipework, copper, 22mm, area 1-45                            53      m
+R10/104   Wash hand basin with mixer tap, area 1-46                               6       nr
+R10/105   WC pan and cistern, close coupled, area 1-47                            8       nr
+R10/106   Cold water pipework, copper, 22mm, area 1-48                            19      m
+
+FIRE PROTECTION
+Works to be carried out by a third party accredited installer. Certificates to be provided on completion. Sprinkler alterations coordinated with the insurer.
+W60/101   Intumescent coating to exposed steel, 60 min, area 1-49                 64      m2
+W60/102   Intumescent coating to exposed steel, 60 min, area 1-50                 102     m2
+W60/103   Fire stopping to service penetrations, area 1-51                        1       item
+W60/104   Intumescent coating to exposed steel, 60 min, area 1-52                 28      m2
+W60/105   Intumescent coating to exposed steel, 60 min, area 1-53                 52      m2
+W60/106   Sprinkler head, relocate to suit new ceiling layout, area 1-54          46      nr
+PS-1      Provisional sum for out-of-hours working                                GBP 5,000
+          Level 1 carried to collection                                        GBP ______
+
+LEVEL 2
+ALL QUANTITIES PROVISIONAL AND SUBJECT TO REMEASURE
+
+PARTITIONS AND DRYLINING
+Partitions are to achieve the acoustic ratings on drawing A-310. Head details to allow for slab deflection. Board joints taped and filled ready for decoration.
+K10/201   Type P3 as specification clause K10/3.4, area 2-01                      39      m2
+K10/202   Metal stud partition, 70mm C-stud, 1x15mm
+          SoundBloc each side, area 2-02                                          192     m2
+K10/203   Plasterboard lining on resilient bars to
+          existing columns, area 2-03                                             13      m2
+K10/204   Type P3 as specification clause K10/3.4, area 2-04                      44      m2
+K10/205   Plasterboard lining on resilient bars to
+          existing columns, area 2-05                                             13      m2
+K10/206   Plasterboard lining on resilient bars to
+          existing columns, area 2-06                                             40      m2
+
+SUSPENDED CEILINGS
+Grid to be installed level to within tolerance. Tiles are to be cut neatly at perimeters and around services. Access panels as required by the services engineer.
+K40/201   Type C2 moisture resistant tile, area 2-07                              24      m2
+K40/202   Suspended ceiling, 600x600 mineral tile on 24mm
+          exposed grid, area 2-08                                                 616     m2
+K40/203   Type C2 moisture resistant tile, area 2-09                              33      m2
+K40/204   Type C4 as clause K40/2.1, area 2-10                                    56      m2
+K40/205   Suspended ceiling, 600x600 mineral tile on 24mm
+          exposed grid, area 2-11                                                 271     m2
+K40/206   Type C4 as clause K40/2.1, area 2-12                                    58      m2
+
+DOORS AND IRONMONGERY
+Door leaves to be factory finished. Ironmongery to be submitted for approval before ordering. Fire doors certified to the stated rating.
+L20/201   Solid core timber doorset with vision panel,
+          ironmongery set IM-02, area 2-13                                        12      nr
+L20/202   FD30 doorset, single leaf, with door closer, area 2-14                  3       nr
+L20/203   FD30 doorset, single leaf, with door closer, area 2-15                  4       nr
+L20/204   Solid core timber doorset with vision panel, ironmongery set IM-02, area 2-16  9       nr
+L20/205   Type D5 as door schedule, area 2-17                                     6       nr
+
+JOINERY
+All joinery to be manufactured from FSC certified material. Shop drawings to be submitted before manufacture. Edges to be lipped.
+N10/201   Vanity unit with solid surface top, area 2-18                           2       nr
+N10/202   WC cubicles, full height, area 2-19                                     3       nr
+N10/203   WC cubicles, full height, area 2-20                                     7       nr
+N10/204   MDF skirting, 100mm, painted, area 2-21                                 180     m
+N10/205   WC cubicles, full height, area 2-22                                     3       nr
+
+FLOOR FINISHES
+Subfloor to be prepared to the manufacturer's requirements. Transitions between finishes to be flush. Samples of each type to be approved before laying.
+M50/201   Carpet tiles 500x500, loop pile, area 2-23                              583     m2
+M50/202   Ditto but slip resistant, area 2-24                                     25      m2
+M50/203   Ditto but slip resistant, area 2-25                                     7       m2
+M50/204   Ditto but slip resistant, area 2-26                                     23      m2
+
+DECORATION
+Surfaces to be prepared, filled and sanded before the mist coat. Colours as the finishes legend. Protect adjacent finishes throughout.
+M60/201   Type W3 to meeting room walls, area 2-27                                88      m2
+M60/202   Two coats emulsion on mist coat to new walls, area 2-28                 320     m2
+M60/203   Type W3 to meeting room walls, area 2-29                                33      m2
+M60/204   Manifestation to glazed screens, two bands, area 2-30                   40      m
+M60/205   Two coats emulsion on mist coat to new walls, area 2-31                 815     m2
+M60/299   Entrance canopy, powder coated, 4.0 x 2.5 m
+
+MECHANICAL SERVICES
+All mechanical work to be commissioned and witnessed. Existing services to be isolated before strip out. Labels to be fixed to all new equipment.
+U10/201   Supply and extract ductwork, galvanised, area 2-32                      152     m
+U10/202   Linear slot diffuser, 1200mm, area 2-33                                 26      nr
+U10/203   Linear slot diffuser, 1200mm, area 2-34                                 23      nr
+U10/204   Linear slot diffuser, 1200mm, area 2-35                                 19      nr
+U10/205   Type M4 as mechanical schedule, area 2-36                               10      nr
+U10/206   Type M4 as mechanical schedule, area 2-37                               2       nr
+U10/207   Linear slot diffuser, 1200mm, area 2-38                                 12      nr
+
+ELECTRICAL SERVICES
+All electrical work to comply with BS 7671. Circuits to be tested and certified. Emergency lighting to be integrated with the new layout.
+V20/201   Type E7 luminaire as lighting schedule, area 2-39                       5       nr
+V20/202   Cable basket containment, 100mm, area 2-40                              189     m
+V20/203   Type E7 luminaire as lighting schedule, area 2-41                       14      nr
+V20/204   LED linear pendant, DALI dimmable, area 2-42                            24      nr
+V20/205   LED linear pendant, DALI dimmable, area 2-43                            27      nr
+V20/206   Floor box with four sockets and two data outlets, area 2-44             16      nr
+
+PUBLIC HEALTH
+Sanitaryware to be white vitreous china unless noted. Pipework to be pressure tested before concealment. Isolation valves to each appliance.
+R10/201   Wash hand basin with mixer tap, area 2-45                               5       nr
+R10/202   WC pan and cistern, close coupled, area 2-46                            7       nr
+R10/203   Wash hand basin with mixer tap, area 2-47                               8       nr
+R10/204   WC pan and cistern, close coupled, area 2-48                            7       nr
+R10/205   Cold water pipework, copper, 22mm, area 2-49                            52      m
+R10/206   Cold water pipework, copper, 22mm, area 2-50                            11      m
+R10/207   Wash hand basin with mixer tap, area 2-51                               6       nr
+
+FIRE PROTECTION
+Works to be carried out by a third party accredited installer. Certificates to be provided on completion. Sprinkler alterations coordinated with the insurer.
+W60/201   Intumescent coating to exposed steel, 60 min, area 2-52                 49      m2
+W60/202   Fire stopping to service penetrations, area 2-53                        1       item
+W60/203   Intumescent coating to exposed steel, 60 min, area 2-54                 29      m2
+W60/204   Sprinkler head, relocate to suit new ceiling layout, area 2-55          21      nr
+W60/205   Sprinkler head, relocate to suit new ceiling layout, area 2-56          24      nr
+W60/206   Fire stopping to service penetrations, area 2-57                        1       item
+PS-2      Provisional sum for out-of-hours working                                GBP 5,000
+          Level 2 carried to collection                                        GBP ______
+
+LEVEL 3
+ALL QUANTITIES PROVISIONAL AND SUBJECT TO REMEASURE
+
+PARTITIONS AND DRYLINING
+Partitions are to achieve the acoustic ratings on drawing A-310. Head details to allow for slab deflection. Board joints taped and filled ready for decoration.
+K10/301   Frameless glazed screen, 12mm toughened, area 3-01                      58      m2
+K10/302   Type P3 as specification clause K10/3.4, area 3-02                      65      m2
+K10/303   Plasterboard lining on resilient bars to existing columns, area 3-03    31      m2
+K10/304   Metal stud partition, 70mm C-stud, 1x15mm SoundBloc each side, area 3-04  199     m2
+K10/305   Metal stud partition, 70mm C-stud, 1x15mm SoundBloc each side, area 3-05  290     m2
+K10/306   Frameless glazed screen, 12mm toughened, area 3-06                      10      m2
+
+SUSPENDED CEILINGS
+Grid to be installed level to within tolerance. Tiles are to be cut neatly at perimeters and around services. Access panels as required by the services engineer.
+K40/301   Type C2 moisture resistant tile, area 3-07                              47      m2
+K40/302   Type C2 moisture resistant tile, area 3-08                              29      m2
+K40/303   Suspended ceiling, 600x600 mineral tile on 24mm
+          exposed grid, area 3-09                                                 245     m2
+K40/304   Type C2 moisture resistant tile, area 3-10                              43      m2
+K40/305   MF plasterboard bulkhead to perimeter, area 3-11                        125     m
+
+DOORS AND IRONMONGERY
+Door leaves to be factory finished. Ironmongery to be submitted for approval before ordering. Fire doors certified to the stated rating.
+L20/301   FD30 doorset, single leaf, with door closer, area 3-12                  2       nr
+L20/302   FD30 doorset, single leaf, with door closer, area 3-13                  5       nr
+L20/303   Type D5 as door schedule, area 3-14                                     1       nr
+L20/304   FD30 doorset, single leaf, with door closer, area 3-15                  6       nr
+L20/305   Solid core timber doorset with vision panel,
+          ironmongery set IM-02, area 3-16                                        15      nr
+
+JOINERY
+All joinery to be manufactured from FSC certified material. Shop drawings to be submitted before manufacture. Edges to be lipped.
+N10/301   WC cubicles, full height, area 3-17                                     2       nr
+N10/302   WC cubicles, full height, area 3-18                                     7       nr
+N10/303   Vanity unit with solid surface top, area 3-19                           1       nr
+N10/304   Vanity unit with solid surface top, area 3-20                           6       nr
+N10/305   Vanity unit with solid surface top, area 3-21                           6       nr
+N10/306   MDF skirting, 100mm, painted, area 3-22                                 131     m
+N10/307   Vanity unit with solid surface top, area 3-23                           4       nr
+
+FLOOR FINISHES
+Subfloor to be prepared to the manufacturer's requirements. Transitions between finishes to be flush. Samples of each type to be approved before laying.
+M50/301   Ditto but slip resistant, area 3-24                                     18      m2
+M50/302   Type F2 to WCs and cleaner's store, area 3-25                           35      m2
+M50/303   Luxury vinyl tile to tea point and breakout, area 3-26                  72      m2
+M50/304   Carpet tiles 500x500, loop pile, area 3-27                              528     m2
+M50/305   Ditto but slip resistant, area 3-28                                     30      m2
+M50/306   Ditto but slip resistant, area 3-29                                     25      m2
+M50/307   Recessed entrance matting, area 3-30                                    11      m2
+
+DECORATION
+Surfaces to be prepared, filled and sanded before the mist coat. Colours as the finishes legend. Protect adjacent finishes throughout.
+M60/301   Type W3 to meeting room walls, area 3-31                                40      m2
+M60/302   Type W3 to meeting room walls, area 3-32                                26      m2
+M60/303   Type W3 to meeting room walls, area 3-33                                28      m2
+M60/304   Type W3 to meeting room walls, area 3-34                                54      m2
+M60/305   Type W3 to meeting room walls, area 3-35                                64      m2
+M60/306   Type W3 to meeting room walls, area 3-36                                23      m2
+M60/307   Two coats emulsion on mist coat to new walls, area 3-37                 417     m2
+M60/399   Acoustic baffles, 6 per meeting room, 8 meeting rooms
+
+MECHANICAL SERVICES
+All mechanical work to be commissioned and witnessed. Existing services to be isolated before strip out. Labels to be fixed to all new equipment.
+U10/301   Type M4 as mechanical schedule, area 3-38                               4       nr
+U10/302   Linear slot diffuser, 1200mm, area 3-39                                 6       nr
+U10/303   Four-pipe fan coil unit, ceiling void mounted, area 3-40                20      nr
+U10/304   Four-pipe fan coil unit, ceiling void mounted, area 3-41                4       nr
+
+ELECTRICAL SERVICES
+All electrical work to comply with BS 7671. Circuits to be tested and certified. Emergency lighting to be integrated with the new layout.
+V20/301   Floor box with four sockets and two data outlets, area 3-42             6       nr
+V20/302   Double switched socket outlet, area 3-43                                83      nr
+V20/303   LED linear pendant, DALI dimmable, area 3-44                            58      nr
+V20/304   Floor box with four sockets and two data outlets, area 3-45             28      nr
+
+PUBLIC HEALTH
+Sanitaryware to be white vitreous china unless noted. Pipework to be pressure tested before concealment. Isolation valves to each appliance.
+R10/301   Cold water pipework, copper, 22mm, area 3-46                            44      m
+R10/302   Wash hand basin with mixer tap, area 3-47                               6       nr
+R10/303   Wash hand basin with mixer tap, area 3-48                               5       nr
+R10/304   Cold water pipework, copper, 22mm, area 3-49                            60      m
+R10/305   Cold water pipework, copper, 22mm, area 3-50                            45      m
+R10/306   WC pan and cistern, close coupled, area 3-51                            6       nr
+
+FIRE PROTECTION
+Works to be carried out by a third party accredited installer. Certificates to be provided on completion. Sprinkler alterations coordinated with the insurer.
+W60/301   Sprinkler head, relocate to suit new ceiling layout, area 3-52          20      nr
+W60/302   Intumescent coating to exposed steel, 60 min, area 3-53                 51      m2
+W60/303   Sprinkler head, relocate to suit new ceiling layout, area 3-54          28      nr
+W60/304   Sprinkler head, relocate to suit new ceiling layout, area 3-55          38      nr
+PS-3      Provisional sum for out-of-hours working                                GBP 5,000
+          Level 3 carried to collection                                        GBP ______
+
+LEVEL 4
+ALL QUANTITIES PROVISIONAL AND SUBJECT TO REMEASURE
+
+PARTITIONS AND DRYLINING
+Partitions are to achieve the acoustic ratings on drawing A-310. Head details to allow for slab deflection. Board joints taped and filled ready for decoration.
+K10/401   Ditto but 2x15mm board each side, 60 min fire rated, area 4-01          136     m2
+K10/402   Metal stud partition, 70mm C-stud, 1x15mm SoundBloc each side, area 4-02  148     m2
+K10/403   Plasterboard lining on resilient bars to existing columns, area 4-03    27      m2
+K10/404   Type P3 as specification clause K10/3.4, area 4-04                      27      m2
+
+SUSPENDED CEILINGS
+Grid to be installed level to within tolerance. Tiles are to be cut neatly at perimeters and around services. Access panels as required by the services engineer.
+K40/401   Type C4 as clause K40/2.1, area 4-05                                    21      m2
+K40/402   Type C4 as clause K40/2.1, area 4-06                                    73      m2
+K40/403   Suspended ceiling, 600x600 mineral tile on 24mm
+          exposed grid, area 4-07                                                 194     m2
+K40/404   Suspended ceiling, 600x600 mineral tile on 24mm exposed grid, area 4-08  621     m2
+K40/405   Suspended ceiling, 600x600 mineral tile on 24mm exposed grid, area 4-09  468     m2
+K40/406   Type C4 as clause K40/2.1, area 4-10                                    15      m2
+K40/407   Type C4 as clause K40/2.1, area 4-11                                    44      m2
+
+DOORS AND IRONMONGERY
+Door leaves to be factory finished. Ironmongery to be submitted for approval before ordering. Fire doors certified to the stated rating.
+L20/401   FD30 doorset, single leaf, with door closer, area 4-12                  3       nr
+L20/402   FD30 doorset, single leaf, with door closer, area 4-13                  7       nr
+L20/403   FD30 doorset, single leaf, with door closer, area 4-14                  5       nr
+L20/404   Solid core timber doorset with vision panel, ironmongery set IM-02, area 4-15  9       nr
+
+JOINERY
+All joinery to be manufactured from FSC certified material. Shop drawings to be submitted before manufacture. Edges to be lipped.
+N10/401   Vanity unit with solid surface top, area 4-16                           1       nr
+N10/402   Tea point base and wall units with quartz worktop, area 4-17            1       item
+N10/403   WC cubicles, full height, area 4-18                                     8       nr
+N10/404   MDF skirting, 100mm, painted, area 4-19                                 161     m
+N10/405   MDF skirting, 100mm, painted, area 4-20                                 119     m
+N10/406   Vanity unit with solid surface top, area 4-21                           4       nr
+N10/407   MDF skirting, 100mm, painted, area 4-22                                 53      m
+
+FLOOR FINISHES
+Subfloor to be prepared to the manufacturer's requirements. Transitions between finishes to be flush. Samples of each type to be approved before laying.
+M50/401   Luxury vinyl tile to tea point and breakout, area 4-23                  85      m2
+M50/402   Luxury vinyl tile to tea point and breakout, area 4-24                  55      m2
+M50/403   Ditto but slip resistant, area 4-25                                     10      m2
+M50/404   Recessed entrance matting, area 4-26                                    13      m2
+M50/405   Luxury vinyl tile to tea point and breakout, area 4-27                  80      m2
+
+DECORATION
+Surfaces to be prepared, filled and sanded before the mist coat. Colours as the finishes legend. Protect adjacent finishes throughout.
+M60/401   Type W3 to meeting room walls, area 4-28                                76      m2
+M60/402   Two coats emulsion on mist coat to new walls, area 4-29                 207     m2
+M60/403   Type W3 to meeting room walls, area 4-30                                30      m2
+M60/404   Manifestation to glazed screens, two bands, area 4-31                   58      m
+M60/405   Manifestation to glazed screens, two bands, area 4-32                   16      m
+M60/406   Manifestation to glazed screens, two bands, area 4-33                   42      m
+M60/407   Type W3 to meeting room walls, area 4-34                                68      m2
+M60/499   Louvred screen to plant area, 2 panels at 3.6 m2 per panel
+
+MECHANICAL SERVICES
+All mechanical work to be commissioned and witnessed. Existing services to be isolated before strip out. Labels to be fixed to all new equipment.
+U10/401   Four-pipe fan coil unit, ceiling void mounted, area 4-35                17      nr
+U10/402   Type M4 as mechanical schedule, area 4-36                               4       nr
+U10/403   Type M4 as mechanical schedule, area 4-37                               7       nr
+U10/404   Linear slot diffuser, 1200mm, area 4-38                                 13      nr
+U10/405   Four-pipe fan coil unit, ceiling void mounted, area 4-39                8       nr
+
+ELECTRICAL SERVICES
+All electrical work to comply with BS 7671. Circuits to be tested and certified. Emergency lighting to be integrated with the new layout.
+V20/401   Floor box with four sockets and two data outlets, area 4-40             7       nr
+V20/402   Cable basket containment, 100mm, area 4-41                              81      m
+V20/403   Double switched socket outlet, area 4-42                                39      nr
+V20/404   Double switched socket outlet, area 4-43                                21      nr
+V20/405   Double switched socket outlet, area 4-44                                73      nr
+
+PUBLIC HEALTH
+Sanitaryware to be white vitreous china unless noted. Pipework to be pressure tested before concealment. Isolation valves to each appliance.
+R10/401   Wash hand basin with mixer tap, area 4-45                               7       nr
+R10/402   WC pan and cistern, close coupled, area 4-46                            6       nr
+R10/403   Cold water pipework, copper, 22mm, area 4-47                            29      m
+R10/404   Cold water pipework, copper, 22mm, area 4-48                            29      m
+R10/405   WC pan and cistern, close coupled, area 4-49                            3       nr
+
+FIRE PROTECTION
+Works to be carried out by a third party accredited installer. Certificates to be provided on completion. Sprinkler alterations coordinated with the insurer.
+W60/401   Intumescent coating to exposed steel, 60 min, area 4-50                 51      m2
+W60/402   Fire stopping to service penetrations, area 4-51                        1       item
+W60/403   Sprinkler head, relocate to suit new ceiling layout, area 4-52          11      nr
+W60/404   Intumescent coating to exposed steel, 60 min, area 4-53                 92      m2
+PS-4      Provisional sum for out-of-hours working                                GBP 5,000
+          Level 4 carried to collection                                        GBP ______
+
+EXCLUSIONS
+- Loose furniture and IT equipment (by client).
+- Landlord's base build sprinkler mains.

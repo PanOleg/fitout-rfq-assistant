@@ -31,6 +31,17 @@ final class RunSummaryTest extends TestCase
         $this->assertStringContainsString('| claude-sonnet-5 | low | 0/2 | 0.83 | 0.83 | 0 | 0 | $0.0080 | $0.0040 | 3.0 s |', $table);
     }
 
+    #[Test]
+    public function repeated_runs_show_the_mean_and_the_worst_run(): void
+    {
+        $good = RunSummary::of('claude-sonnet-5', 'low', [$this->score(matched: 10, expected: 10, extracted: 10, ms: 2000)]);
+        $bad = RunSummary::of('claude-sonnet-5', 'low', [$this->score(matched: 8, expected: 10, extracted: 8, ms: 4000)]);
+
+        $table = RunSummary::spreadMarkdown([[$good, $bad]], 'grid');
+
+        $this->assertStringContainsString('| claude-sonnet-5 | low | 2 | 0–1/1 | 0.900 (0.800) | 1.000 (1.000) | 0.0 | 0 | $0.0040 | 3.0 s |', $table);
+    }
+
     /** @param list<string> $unexpected */
     private function score(int $matched, int $expected, int $extracted, int $ms, array $unexpected = []): CaseScore
     {

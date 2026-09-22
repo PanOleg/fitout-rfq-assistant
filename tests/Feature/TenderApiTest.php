@@ -203,9 +203,11 @@ final class TenderApiTest extends TestCase
 
         $this->artisan('rfq:draft-case', ['tender' => $id, 'slug' => 'Level 3 schedule', '--dir' => $dir])->assertSuccessful();
 
-        $this->assertSame(self::DOCUMENT, file_get_contents("{$dir}/07-level-3-schedule.txt"));
-        $this->assertSame(['items' => [], 'warnings_about' => []], json_decode((string) file_get_contents("{$dir}/07-level-3-schedule.expected.json"), true), 'expectations are left for a person');
-        $this->assertStringContainsString('flooring 640 m2', (string) file_get_contents("{$dir}/07-level-3-schedule.model-output.md"));
+        $stem = substr((string) (glob("{$dir}/*-level-3-schedule.txt") ?: [''])[0], 0, -4);
+        $this->assertMatchesRegularExpression('/\/\d{2}-level-3-schedule$/', $stem, 'numbered after the existing cases');
+        $this->assertSame(self::DOCUMENT, file_get_contents("{$stem}.txt"));
+        $this->assertSame(['items' => [], 'warnings_about' => []], json_decode((string) file_get_contents("{$stem}.expected.json"), true), 'expectations are left for a person');
+        $this->assertStringContainsString('flooring 640 m2', (string) file_get_contents("{$stem}.model-output.md"));
 
         array_map(unlink(...), glob("{$dir}/*") ?: []);
         rmdir($dir);

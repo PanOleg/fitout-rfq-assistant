@@ -6,6 +6,7 @@ namespace Tests\Unit\Extraction;
 
 use FitOut\Evals\EvalCase;
 use FitOut\Extraction\GroundingValidator;
+use FitOut\Ingestion\Local\LocalDocumentReader;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
@@ -166,7 +167,7 @@ final class GroundingValidatorTest extends TestCase
     #[Test]
     public function every_expected_item_in_the_golden_cases_is_grounded(): void
     {
-        foreach (EvalCase::loadDirectory(__DIR__.'/../../../evals/cases') as $case) {
+        foreach (EvalCase::loadDirectory(__DIR__.'/../../../evals/cases', new LocalDocumentReader) as $case) {
             foreach ($case->expected as $expected) {
                 $lines = explode("\n", $case->document);
                 $at = array_find_key($lines, static fn (string $l): bool => str_contains(mb_strtolower($l), mb_strtolower($expected->sourceContains)));

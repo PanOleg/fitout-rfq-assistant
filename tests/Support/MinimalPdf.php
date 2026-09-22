@@ -77,15 +77,49 @@ final class MinimalPdf
         ]);
     }
 
+    /**
+     * Several pages, each a table drawn column by column (every left-hand cell,
+     * then every quantity, then every unit) — the layout that scrambles rows
+     * for a reader that goes by drawing order.
+     *
+     * @param  list<list<array{string, string, string}>>  $pages  rows of [description, quantity, unit]; a heading row leaves the last two empty
+     */
+    public static function tablePagesDrawnByColumn(array $pages): string
+    {
+        return self::pages(array_map(static function (array $rows): string {
+            $text = '';
+            foreach ([0 => 40, 1 => 440, 2 => 500] as $column => $x) {
+                foreach ($rows as $i => $row) {
+                    if ($row[$column] !== '') {
+                        $text .= 'BT /F1 8 Tf '.$x.' '.(800 - 12 * $i).' Td ('.self::escape($row[$column]).") Tj ET\n";
+                    }
+                }
+            }
+
+            return $text;
+        }, $pages));
+    }
+
     private static function page(string $content): string
     {
-        return self::document([
-            '<< /Type /Catalog /Pages 2 0 R >>',
-            '<< /Type /Pages /Kids [3 0 R] /Count 1 >>',
-            '<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Contents 4 0 R /Resources << /Font << /F1 5 0 R >> >> >>',
-            self::stream($content),
-            '<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>',
-        ]);
+        return self::pages([$content]);
+    }
+
+    /** @param list<string> $contents one content stream per page */
+    private static function pages(array $contents): string
+    {
+        $count = count($contents);
+        $font = 3 + 2 * $count;
+        $kids = implode(' ', array_map(static fn (int $i): string => (3 + 2 * $i).' 0 R', array_keys($contents)));
+
+        $objects = ['<< /Type /Catalog /Pages 2 0 R >>', "<< /Type /Pages /Kids [{$kids}] /Count {$count} >>"];
+        foreach ($contents as $i => $content) {
+            $objects[] = '<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Contents '.(4 + 2 * $i)." 0 R /Resources << /Font << /F1 {$font} 0 R >> >> >>";
+            $objects[] = self::stream($content);
+        }
+        $objects[] = '<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>';
+
+        return self::document($objects);
     }
 
     private static function stream(string $content): string

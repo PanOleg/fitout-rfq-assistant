@@ -14,6 +14,7 @@ use FitOut\Extraction\ExtractionPrompt;
 use FitOut\Extraction\ExtractionResult;
 use FitOut\Extraction\GroundingValidator;
 use FitOut\Extraction\LlmLineItemExtractor;
+use FitOut\Ingestion\DocumentReader;
 use FitOut\Llm\Anthropic\AnthropicLlmClient;
 use FitOut\Llm\Exceptions\LlmException;
 use FitOut\Llm\Exceptions\LlmOutputTruncated;
@@ -36,6 +37,7 @@ final class RunEvals extends Command
         {--model=* : model(s) to run; defaults to RFQ_LLM_MODEL}
         {--effort=* : effort level(s) (low|medium|high|xhigh|max); defaults to RFQ_LLM_EFFORT}
         {--without-context : read later pieces of long documents without the headings above them, to measure what that context is worth}
+        {--repeat=1 : run each model/effort this many times and report the spread}
         {--min-recall=0.9 : exit non-zero if any run is below this overall recall}';
 
     protected $description = 'Score line-item extraction against the golden cases';
@@ -61,7 +63,7 @@ final class RunEvals extends Command
         }
 
         $cases = array_values(array_filter(
-            EvalCase::loadDirectory(base_path('evals/cases')),
+            EvalCase::loadDirectory(base_path('evals/cases'), app(DocumentReader::class)),
             fn (EvalCase $c): bool => ! is_string($this->option('case')) || str_contains($c->name, $this->option('case')),
         ));
         if ($cases === []) {
@@ -70,16 +72,21 @@ final class RunEvals extends Command
             return self::FAILURE;
         }
 
-        $runs = [];
+        $repeat = max(1, (int) $this->option('repeat'));
+        /** @var array<string, non-empty-list<RunSummary>> $groups every group gets at least one run */
+        $groups = [];
         foreach ($models as $model) {
             foreach ($efforts as $effort) {
-                /** @var 'low'|'medium'|'high'|'xhigh'|'max' $effort */
-                $runs[] = $this->evaluate($scorer, $model, $effort, $cases);
+                for ($i = 1; $i <= $repeat; $i++) {
+                    /** @var 'low'|'medium'|'high'|'xhigh'|'max' $effort */
+                    $groups["{$model}|{$effort}"][] = $this->evaluate($scorer, $model, $effort, $cases);
+                }
             }
         }
+        $runs = array_merge(...array_values($groups));
 
-        $heading = sprintf('%s — prompt %s%s, validator %s, %d cases', now()->format('Y-m-d'), ExtractionPrompt::VERSION, $this->option('without-context') ? ' without piece context' : '', GroundingValidator::VERSION, count($cases));
-        $table = RunSummary::markdown($runs, $heading);
+        $heading = sprintf('%s — prompt %s%s, validator %s, %d cases%s', now()->format('Y-m-d'), ExtractionPrompt::VERSION, $this->option('without-context') ? ' without piece context' : '', GroundingValidator::VERSION, count($cases), $repeat > 1 ? ", {$repeat} runs each" : '');
+        $table = $repeat > 1 ? RunSummary::spreadMarkdown(array_values($groups), $heading) : RunSummary::markdown($runs, $heading);
         $this->newLine();
         $this->line($table);
 

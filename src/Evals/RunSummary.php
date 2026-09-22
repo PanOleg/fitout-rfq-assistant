@@ -59,4 +59,39 @@ final readonly class RunSummary
             ."|---|---|---|---|---|---|---|---|---|---|\n"
             .implode("\n", $rows)."\n";
     }
+
+    /**
+     * One row per setting over repeated runs: the mean and the worst run, so a
+     * setting that is perfect on average but drops items one run in three is
+     * visible as such.
+     *
+     * @param  list<non-empty-list<self>>  $groups  runs of one model/effort each
+     */
+    public static function spreadMarkdown(array $groups, string $heading): string
+    {
+        $mean = static fn (array $values): float => array_sum($values) / count($values);
+        $rows = array_map(static function (array $runs) use ($mean): string {
+            $first = $runs[0];
+            $recall = array_map(static fn (self $r): float => $r->recall, $runs);
+            $precision = array_map(static fn (self $r): float => $r->precision, $runs);
+            $passed = array_map(static fn (self $r): int => $r->passed, $runs);
+
+            return sprintf(
+                '| %s | %s | %d | %d–%d/%d | %.3f (%.3f) | %.3f (%.3f) | %.1f | %d | $%.4f | %.1f s |',
+                $first->model, $first->effort, count($runs),
+                min($passed), max($passed), $first->cases,
+                $mean($recall), min($recall), $mean($precision), min($precision),
+                $mean(array_map(static fn (self $r): int => $r->rejected, $runs)),
+                array_sum(array_map(static fn (self $r): int => $r->errors, $runs)),
+                $mean(array_map(static fn (self $r): float => $r->costUsd / $r->cases, $runs)),
+                $mean(array_map(static fn (self $r): float => $r->totalMs / $r->cases / 1000, $runs)),
+            );
+        }, $groups);
+
+        return "## {$heading}\n\n"
+            ."Recall and precision: mean over runs, worst run in brackets.\n\n"
+            ."| model | effort | runs | cases passed | recall | precision | rejected / run | errors | cost / case | latency / case |\n"
+            ."|---|---|---|---|---|---|---|---|---|---|\n"
+            .implode("\n", $rows)."\n";
+    }
 }

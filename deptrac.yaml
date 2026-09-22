@@ -82,6 +82,6 @@ deptrac:
     Extraction: [Domain, Llm, PsrCache]
     Suppliers: [Domain]
     Rfq: [Domain, Suppliers]
-    Evals: [Domain, Extraction]
+    Evals: [Domain, Extraction, Ingestion]
     Ingestion: ~
     IngestionLocal: [Ingestion, PdfParser, Spreadsheets, Processes]
