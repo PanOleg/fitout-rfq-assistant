@@ -3,6 +3,16 @@
 Laravel 13 / PHP 8.4. Claude extracts line items from fit-out documents; deterministic
 code validates, groups, shortlists suppliers and writes RFQs. See README for the why.
 
+## Map
+
+- Extraction (model call, repair loop) → `src/Extraction/LlmLineItemExtractor.php`
+- Grounding checks on model output → `src/Extraction/GroundingValidator.php`
+- Prompt, schema, repair message → `src/Extraction/ExtractionPrompt.php`
+- Anthropic adapter → `src/Llm/Anthropic/`; port → `src/Llm/LlmClient.php`
+- RFQ writing → `src/Rfq/RfqComposer.php`; suppliers → `src/Suppliers/`, `config/suppliers.php`
+- API → `app/Http/Controllers/TenderController.php` + queued `app/Jobs/ExtractTender.php`
+- Evals → cases in `evals/cases/`, scorer in `src/Evals/`, command `app/Console/Commands/RunEvals.php` (`rfq:eval`)
+
 ## Rules
 
 - `src/` is framework-free. No `Illuminate\*` there (except in tests). Laravel lives in
