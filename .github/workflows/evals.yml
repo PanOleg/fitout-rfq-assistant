@@ -4,8 +4,11 @@ name: evals
 on:
   workflow_dispatch:
     inputs:
-      effort:
-        description: 'Effort (low | medium | high | xhigh | max)'
+      models:
+        description: 'Models, space-separated (e.g. "claude-opus-5 claude-sonnet-5")'
+        default: 'claude-opus-5'
+      efforts:
+        description: 'Efforts, space-separated (low | medium | high | xhigh | max)'
         default: 'medium'
       case:
         description: 'Only cases whose name contains this (empty = all)'
@@ -28,10 +31,20 @@ jobs:
       - name: Run evals
         env:
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
-        run: php artisan rfq:eval --effort="${{ inputs.effort }}" ${{ inputs.case && format('--case={0}', inputs.case) || '' }}
+          MODELS: ${{ inputs.models }}
+          EFFORTS: ${{ inputs.efforts }}
+          CASE: ${{ inputs.case }}
+        run: |
+          args=()
+          for m in $MODELS; do args+=("--model=$m"); done
+          for e in $EFFORTS; do args+=("--effort=$e"); done
+          [ -n "$CASE" ] && args+=("--case=$CASE")
+          php artisan rfq:eval "${args[@]}"
 
       - uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: eval-report-${{ inputs.effort }}
-          path: storage/evals/*.json
+          name: eval-report
+          path: |
+            storage/evals/*.json
+            evals/results/*.md
