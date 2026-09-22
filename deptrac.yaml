@@ -1,0 +1,37 @@
+# Dependency rules for src/. The domain knows nothing; adapters know the domain.
+# Laravel (app/) is the composition root and is deliberately left out.
+deptrac:
+  paths:
+    - ./src
+  layers:
+    - name: Domain
+      collectors:
+        - type: directory
+          value: src/Domain/.*
+    - name: Llm
+      collectors:
+        - type: directory
+          value: src/Llm/.*
+    - name: Extraction
+      collectors:
+        - type: directory
+          value: src/Extraction/.*
+    - name: Suppliers
+      collectors:
+        - type: directory
+          value: src/Suppliers/.*
+    - name: Rfq
+      collectors:
+        - type: directory
+          value: src/Rfq/.*
+    - name: Evals
+      collectors:
+        - type: directory
+          value: src/Evals/.*
+  ruleset:
+    Domain: ~
+    Llm: ~
+    Extraction: [Domain, Llm]
+    Suppliers: [Domain]
+    Rfq: [Domain, Suppliers]
+    Evals: [Domain, Extraction]
