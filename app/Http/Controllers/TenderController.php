@@ -85,14 +85,13 @@ final class TenderController
 
     public function rfqs(Tender $tender, SupplierMatcher $matcher, RfqComposer $composer): JsonResponse
     {
-        $result = $tender->extractionResult();
-        if ($tender->status !== TenderStatus::Extracted || $result === null) {
+        if ($tender->status !== TenderStatus::Extracted) {
             return response()->json(['message' => "Tender is {$tender->status->value}; RFQs are available once extraction has finished."], 409);
         }
 
         $drafts = array_map(
             static fn (WorkPackage $package): RfqDraft => $composer->compose($tender->name, $tender->return_by, $matcher->shortlist($package, $tender->region)),
-            WorkPackage::groupByTrade($result->items),
+            WorkPackage::groupByTrade($tender->finalItems()),
         );
 
         return response()->json(['data' => array_map(static fn (RfqDraft $d): array => $d->toArray(), $drafts)]);

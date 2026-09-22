@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Models;
 
 use Carbon\CarbonImmutable;
+use FitOut\Domain\LineItem;
 use FitOut\Extraction\ExtractionResult;
 use Illuminate\Database\Eloquent\Concerns\HasUlids;
 use Illuminate\Database\Eloquent\Model;
@@ -26,6 +27,8 @@ use Illuminate\Support\Carbon;
  * @property TenderStatus $status
  * @property ?array<string, mixed> $extraction
  * @property ?string $failure
+ * @property ?array{items: list<array{trade: string, description: string, quantity: float|int, unit: string, spec_reference?: ?string, source_text: string}>, notes?: string} $review
+ * @property ?Carbon $reviewed_at
  * @property Carbon $created_at
  */
 class Tender extends Model
@@ -42,6 +45,8 @@ class Tender extends Model
             'return_by' => 'immutable_date',
             'status' => TenderStatus::class,
             'extraction' => 'array',
+            'review' => 'array',
+            'reviewed_at' => 'datetime',
         ];
     }
 
@@ -49,6 +54,21 @@ class Tender extends Model
     public function pieces(): HasMany
     {
         return $this->hasMany(TenderPiece::class)->orderBy('position');
+    }
+
+    /**
+     * What goes into packages and RFQs: the reviewer's items once the tender
+     * has been reviewed, the extraction's accepted items before that.
+     *
+     * @return list<LineItem>
+     */
+    public function finalItems(): array
+    {
+        if ($this->review !== null) {
+            return array_map(LineItem::fromArray(...), $this->review['items']);
+        }
+
+        return $this->extractionResult()->items ?? [];
     }
 
     public function extractionResult(): ?ExtractionResult

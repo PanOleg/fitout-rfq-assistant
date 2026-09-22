@@ -36,7 +36,7 @@ final class GroundingValidator
         $source = is_string($item['source_text'] ?? null) ? $item['source_text'] : '';
         if (trim($source) === '') {
             $problems[] = 'source_text is empty.';
-        } elseif (! str_contains(self::normalise($document), self::normalise($source))) {
+        } elseif (! self::isQuoted($source, $document)) {
             $problems[] = 'source_text is not a verbatim quote from the document.';
         }
 
@@ -65,6 +65,12 @@ final class GroundingValidator
         }
 
         return $problems;
+    }
+
+    /** Whether $quote occurs in $document, ignoring whitespace, case and typographic quotes. */
+    public static function isQuoted(string $quote, string $document): bool
+    {
+        return trim($quote) !== '' && str_contains(self::normalise($document), self::normalise($quote));
     }
 
     private static function normalise(string $text): string

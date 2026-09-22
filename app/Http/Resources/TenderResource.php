@@ -39,7 +39,7 @@ final class TenderResource extends JsonResource
                 'trade' => $p->trade->value,
                 'label' => $p->trade->label(),
                 'items' => array_map(static fn (LineItem $i): array => $i->toArray(), $p->items),
-            ], WorkPackage::groupByTrade($result->items)),
+            ], WorkPackage::groupByTrade($this->resource->finalItems())),
             'needs_review' => $result === null ? null : [
                 'warnings' => [
                     ...($this->read_by === ReadDocument::OCR ? ['The document was read by OCR from a scan: quotes were checked against the recognised text, not the file. Check quantities against the original.'] : []),
@@ -56,9 +56,14 @@ final class TenderResource extends JsonResource
                 'cost_usd' => $result->costUsd(),
                 'duration_ms' => $result->durationMs,
             ],
+            'review' => $this->reviewed_at === null ? null : [
+                'reviewed_at' => $this->reviewed_at->toIso8601String(),
+                'items' => count($this->review['items'] ?? []),
+            ],
             'links' => [
                 'self' => route('tenders.show', $this->id),
                 'rfqs' => route('tenders.rfqs', $this->id),
+                'review' => route('tenders.review', $this->id),
             ],
         ];
     }

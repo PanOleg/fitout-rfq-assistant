@@ -25,6 +25,11 @@ return [
         'read_timeout' => (int) env('RFQ_READ_TIMEOUT', 900),    // OCR of a long scan
     ],
 
+    'evals' => [
+        // Git-ignored: drafts hold client documents until they are anonymised.
+        'drafts_dir' => env('RFQ_EVAL_DRAFTS_DIR', base_path('evals/drafts')),
+    ],
+
     'bidders_per_package' => 3,
 
     'regions' => ['london', 'south-east', 'midlands', 'north-west', 'scotland'],
