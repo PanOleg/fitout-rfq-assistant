@@ -114,6 +114,7 @@ final class GroundingValidatorTest extends TestCase
         yield 'several trades, including its own' => ['doors', 'Door and frame, including decoration    12 nr'];
         yield 'no trade words at all' => ['joinery', 'Item 7 as drawing J-204    1 item'];
         yield 'the word of another trade inside its own' => ['electrical', '118 nr LED recessed panels 600x600'];
+        yield 'a location, not a trade' => ['flooring', 'F-02  Type B to WCs and tea point   44 nr'];
     }
 
     #[Test]

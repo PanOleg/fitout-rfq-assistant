@@ -23,7 +23,7 @@ final class GroundingValidator
      * Bump when a check changes. It is part of the extraction cache key, so a
      * result accepted under weaker checks is never replayed as clean.
      */
-    public const VERSION = '3';
+    public const VERSION = '4';
 
     /**
      * @param  array<string, mixed>  $item
@@ -80,10 +80,18 @@ final class GroundingValidator
      * trade but does have words of another one ("carpet tiles" as ceilings).
      * A quote with no trade words at all, or with words of several trades
      * including its own ("door and frame, including decoration"), passes.
+     *
+     * Where the work goes is not what it is: "Type B to WCs" under FLOOR
+     * FINISHES is flooring, so a word right after "to", "in", "at"… does not
+     * count as another trade's word.
      */
     private static function tradeProblem(string $source, Trade $trade): ?string
     {
-        $text = self::normalise($source);
+        $text = (string) preg_replace(
+            '~\b(?:to|in|at|within|serving)\s+(?:(?:the|all|new|existing)\s+)*[\p{L}-]+(?:\s+(?:and|&)\s+[\p{L}-]+)?~u',
+            ' ',
+            self::normalise($source),
+        );
         $said = static function (Trade $t) use ($text): ?string {
             foreach ($t->keywords() as $keyword) {
                 if (preg_match('~\b(?:'.$keyword.')~u', $text, $m) === 1) {

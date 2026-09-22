@@ -50,7 +50,7 @@ enum Trade: string
     {
         return match ($this) {
             self::Partitions => ['partition', 'stud', 'plasterboard', 'dry-?\s?lining', 'soundbloc', 'acoustic insulation', 'apr insulation', 'glazed screen'],
-            self::Ceilings => ['ceiling', 'bulkhead', 'raft', 'mineral tile', 'exposed grid', 'suspended grid'],
+            self::Ceilings => ['ceiling', 'bulkhead', 'raft', 'mineral tile', 'exposed grid', 'suspended grid', 'margin', 'mf\b'],
             self::Doors => ['doors?\b', 'doorsets?', 'ironmongery', 'door closers?', 'fd\d0'],
             self::Joinery => ['joinery', 'kitchen', 'tea point', 'vanity', 'reception desk', 'shelving', 'skirting', 'panelling', 'worktop', 'wall units', 'base units', 'cupboard'],
             self::Flooring => ['carpet', 'lvt\b', 'vinyl', 'raised access floor', 'screed', 'matting', 'flooring', 'floor finish'],
