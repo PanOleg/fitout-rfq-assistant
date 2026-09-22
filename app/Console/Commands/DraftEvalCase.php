@@ -31,8 +31,8 @@ final class DraftEvalCase extends Command
     public function handle(): int
     {
         $tender = Tender::query()->find($this->argument('tender'));
-        if ($tender === null) {
-            $this->error('No such tender.');
+        if ($tender === null || $tender->document === null) {
+            $this->error($tender === null ? 'No such tender.' : 'The tender has not been read yet.');
 
             return self::FAILURE;
         }

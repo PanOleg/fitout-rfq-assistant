@@ -14,6 +14,13 @@ return [
         'chunk_chars' => 20_000,
     ],
 
+    // Per-job timeouts. queue.connections.*.retry_after must stay above the longest,
+    // or a slow job is handed to a second worker while the first is still on it.
+    'queue' => [
+        'piece_timeout' => (int) env('RFQ_PIECE_TIMEOUT', 300),  // one piece: up to 3 model calls, halving on overflow
+        'read_timeout' => (int) env('RFQ_READ_TIMEOUT', 900),    // OCR of a long scan
+    ],
+
     'bidders_per_package' => 3,
 
     'regions' => ['london', 'south-east', 'midlands', 'north-west', 'scotland'],

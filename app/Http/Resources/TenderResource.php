@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace App\Http\Resources;
 
 use App\Models\Tender;
+use App\Models\TenderPiece;
+use App\Models\TenderStatus;
 use FitOut\Domain\LineItem;
 use FitOut\Domain\WorkPackage;
 use FitOut\Extraction\Violation;
@@ -28,6 +30,10 @@ final class TenderResource extends JsonResource
             'source_filename' => $this->source_filename,
             'read_by' => $this->read_by,
             'status' => $this->status->value,
+            'progress' => $this->status === TenderStatus::Extracting ? [
+                'pieces' => $this->resource->pieces()->count(),
+                'done' => $this->resource->pieces()->where('status', TenderPiece::DONE)->count(),
+            ] : null,
             'failure' => $this->failure,
             'packages' => $result === null ? null : array_map(static fn (WorkPackage $p): array => [
                 'trade' => $p->trade->value,

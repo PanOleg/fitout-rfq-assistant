@@ -29,14 +29,34 @@ final readonly class ChunkedLineItemExtractor implements LineItemExtractor
 
     public function extract(string $document, string $context = ''): ExtractionResult
     {
-        $parts = [];
+        return ExtractionResult::merge(array_map(
+            fn (array $range): ExtractionResult => $this->extractPiece($document, substr($document, $range[0], $range[1]), $range[0], $context),
+            $this->ranges($document),
+        ));
+    }
+
+    /**
+     * Where the pieces of $document are, as [byte offset, byte length], so each
+     * can be read on its own — by a separate queue job — with extractRange().
+     *
+     * @return non-empty-list<array{int, int}>
+     */
+    public function ranges(string $document): array
+    {
+        $ranges = [];
         $offset = 0;
         foreach ((new DocumentChunker($this->maxChars))->split($document) as $piece) {
-            $parts[] = $this->extractPiece($document, $piece, $offset, $context);
+            $ranges[] = [$offset, strlen($piece)];
             $offset += strlen($piece);
         }
 
-        return ExtractionResult::merge($parts);
+        return $ranges;
+    }
+
+    /** Reads one piece of $document, with the context before it and the same overflow handling as extract(). */
+    public function extractRange(string $document, int $offset, int $length): ExtractionResult
+    {
+        return $this->extractPiece($document, substr($document, $offset, $length), $offset, '');
     }
 
     /** $offset is where $piece starts in $document; every piece after the first is given the context before it. */

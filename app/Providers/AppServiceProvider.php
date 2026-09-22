@@ -31,14 +31,17 @@ class AppServiceProvider extends ServiceProvider
             config('rfq.llm.effort'),
         ));
 
-        $this->app->bind(LineItemExtractor::class, fn (Application $app): LineItemExtractor => new CachingLineItemExtractor(
-            new ChunkedLineItemExtractor(
+        // One piece at a time, cached per piece: Chunked(Caching(Llm)). The queue runs each
+        // piece as its own job through extractRange(); extract() reads a whole document.
+        $this->app->bind(ChunkedLineItemExtractor::class, fn (Application $app): ChunkedLineItemExtractor => new ChunkedLineItemExtractor(
+            new CachingLineItemExtractor(
                 new LlmLineItemExtractor($app->make(LlmClient::class), maxRepairs: config('rfq.llm.max_repairs')),
-                config('rfq.llm.chunk_chars'),
+                Cache::store(),
+                config('rfq.llm.model').':'.config('rfq.llm.effort'),
             ),
-            Cache::store(),
-            config('rfq.llm.model').':'.config('rfq.llm.effort'),
+            config('rfq.llm.chunk_chars'),
         ));
+        $this->app->bind(LineItemExtractor::class, ChunkedLineItemExtractor::class);
 
         $this->app->singleton(DocumentReader::class, fn (): DocumentReader => new LocalDocumentReader(
             pdftotext: config('rfq.ingestion.pdftotext'),

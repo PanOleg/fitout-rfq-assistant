@@ -4,7 +4,10 @@ declare(strict_types=1);
 
 namespace Tests\Feature;
 
+use App\Jobs\ExtractTender;
+use App\Jobs\ReadTenderDocument;
 use App\Models\Tender;
+use App\Models\TenderPiece;
 use Database\Seeders\SupplierSeeder;
 use FitOut\Extraction\ExtractionPrompt;
 use FitOut\Ingestion\DocumentReader;
@@ -15,6 +18,7 @@ use FitOut\Llm\StructuredRequest;
 use FitOut\Llm\StructuredResponse;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\Queue;
 use PHPUnit\Framework\Attributes\Test;
 use Tests\Support\MinimalPdf;
 use Tests\Support\ScriptedLlmClient;
@@ -113,11 +117,74 @@ final class TenderApiTest extends TestCase
         $payload = ['file' => UploadedFile::fake()->createWithContent('scan.pdf', MinimalPdf::withLines([]))] + $this->payload();
         unset($payload['document']);
 
-        $this->post('/api/tenders', $payload, ['Accept' => 'application/json'])
-            ->assertUnprocessable()
-            ->assertJsonPath('errors.file.0', 'The PDF has no text layer — it looks scanned — and OCR is not available on this server.');
+        $id = $this->post('/api/tenders', $payload, ['Accept' => 'application/json'])->assertAccepted()->json('data.id');
 
-        $this->assertSame(0, Tender::query()->count());
+        $this->getJson("/api/tenders/{$id}")
+            ->assertJsonPath('data.status', 'failed')
+            ->assertJsonPath('data.failure', 'The PDF has no text layer — it looks scanned — and OCR is not available on this server.');
+    }
+
+    #[Test]
+    public function an_upload_is_read_in_the_queue_not_in_the_request(): void
+    {
+        Queue::fake();
+        $payload = ['file' => UploadedFile::fake()->createWithContent('schedule.pdf', MinimalPdf::withLines(explode("\n", self::DOCUMENT)))] + $this->payload();
+        unset($payload['document']);
+
+        $this->post('/api/tenders', $payload, ['Accept' => 'application/json'])
+            ->assertAccepted()
+            ->assertJsonPath('data.status', 'reading')
+            ->assertJsonPath('data.packages', null);
+
+        Queue::assertPushed(ReadTenderDocument::class);
+        Queue::assertNotPushed(ExtractTender::class);
+    }
+
+    #[Test]
+    public function a_long_document_is_extracted_one_piece_per_job_and_merged_in_order(): void
+    {
+        config(['rfq.llm.chunk_chars' => 120]);
+        $llm = new ScriptedLlmClient(
+            ['items' => [self::ANSWER['items'][0]], 'warnings' => []],
+            ['items' => [self::ANSWER['items'][1]], 'warnings' => []],
+            ['items' => [self::ANSWER['items'][2]], 'warnings' => []],
+        );
+        $this->app->instance(LlmClient::class, $llm);
+        $document = str_replace("\n", "\n\n", self::DOCUMENT);
+
+        $id = $this->postJson('/api/tenders', ['document' => $document] + $this->payload())->json('data.id');
+
+        $this->assertSame(3, TenderPiece::query()->where('tender_id', $id)->where('status', TenderPiece::DONE)->count());
+        $this->assertCount(3, $llm->requests, 'one call per piece');
+        $this->getJson("/api/tenders/{$id}")
+            ->assertJsonPath('data.status', 'extracted')
+            ->assertJsonPath('data.packages.0.trade', 'partitions')
+            ->assertJsonCount(2, 'data.packages.1.items');
+    }
+
+    #[Test]
+    public function a_failed_piece_fails_the_tender_and_says_which(): void
+    {
+        config(['rfq.llm.chunk_chars' => 120]);
+        $this->app->instance(LlmClient::class, new class implements LlmClient
+        {
+            private int $calls = 0;
+
+            public function structured(StructuredRequest $request): StructuredResponse
+            {
+                if (++$this->calls === 2) {
+                    throw new LlmRefused('Model declined the request (cyber).');
+                }
+
+                return (new ScriptedLlmClient(['items' => [], 'warnings' => []]))->structured($request);
+            }
+        });
+
+        $id = $this->postJson('/api/tenders', ['document' => str_replace("\n", "\n\n", self::DOCUMENT)] + $this->payload())->json('data.id');
+
+        $this->getJson("/api/tenders/{$id}")
+            ->assertJsonPath('data.status', 'failed')
+            ->assertJsonPath('data.failure', 'Piece 2 of 3: Model declined the request (cyber).');
     }
 
     #[Test]
@@ -167,7 +234,7 @@ final class TenderApiTest extends TestCase
 
         $this->getJson("/api/tenders/{$id}")
             ->assertJsonPath('data.status', 'failed')
-            ->assertJsonPath('data.failure', 'Model declined the request (cyber).');
+            ->assertJsonPath('data.failure', 'Piece 1 of 1: Model declined the request (cyber).');
         $this->getJson("/api/tenders/{$id}/rfqs")->assertStatus(409);
     }
 
