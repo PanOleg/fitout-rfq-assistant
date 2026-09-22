@@ -33,26 +33,43 @@ quantity that was "tidied up". Every item must quote the source verbatim, and
   (`600x600`, `3.0 x 2.5 m`), a rate (`420 m2 per floor`), or part of a reference, range or
   price (`K10/120`, `levels 1-3`, `£5,000`). When a line writes a unit, only a number carrying
   one can be the quantity;
-- the unit written next to that number is the item's unit (`96 m` cannot become `96 m2`).
+- the unit written next to that number is the item's unit (`96 m` cannot become `96 m2`);
+- the trade is not contradicted by the quote: an item is flagged when its quote has none of
+  its trade's words but has another trade's (`Carpet tiles` filed under ceilings). Where the
+  work goes does not count — `Type B to WCs` is not plumbing.
 
-What is **not** checked: the trade and the description. Those are the model's judgement and
-are only measured by the evals. A unit test runs every golden-case expectation through the
-validator, so tightening a check can't start rejecting what the evals call correct.
+The trade check only catches contradictions; a correct trade is not proven, and the
+description is not checked at all. Both are measured by the evals. A unit test runs every
+golden-case expectation through the validator, so tightening a check can't start rejecting
+what the evals call correct.
 
-**Files in, text through.** PDFs (text layer), XLSX and CSV are converted to text
-deterministically ([`DocumentText`](src/Ingestion/DocumentText.php)); a spreadsheet row becomes
-one tab-separated line with empty columns kept, so Qty stays next to Unit. The pipeline after
-that is unchanged, so every quote is still checked against what the file says. Sending the PDF
-to Claude as a document block was the obvious alternative and was rejected: it drops the
-quote check, and citations — the API's own grounding — can't be combined with structured
-outputs (the API returns a 400). A PDF with no text layer is refused with a reason rather
-than guessed at.
+**Files in, text through.** PDF, XLSX and CSV are converted to text without the model
+([`DocumentReader`](src/Ingestion/DocumentReader.php)), and the pipeline after that is
+unchanged, so every quote is still checked against the text:
+
+- PDFs are read with poppler's `pdftotext -layout`, which places text by position. Many BoQ
+  exporters draw a table column by column; read in drawing order, "Entrance matting" sits
+  right above another row's "640 m2" and a wrong pairing is still a verbatim quote. Without
+  poppler it falls back to smalot/pdfparser.
+- Scans (no text layer) are rendered with `pdftoppm` and read by tesseract. The tender is
+  marked `read_by: ocr` and `needs_review` says so: its quotes are checked against the
+  recognised text, not the file, so an OCR slip ("640 m?") is invisible to the checks.
+- A spreadsheet row becomes one tab-separated line with empty columns kept, so Qty stays
+  next to Unit.
+
+Sending the PDF to Claude as a document block was the obvious alternative and was rejected:
+it drops the quote check, and citations — the API's own grounding — can't be combined with
+structured outputs (the API returns a 400).
 
 **Long documents are read in pieces.** Over `rfq.llm.chunk_chars` (20k characters) a document
 is split between paragraphs, then lines — never overlapping, so each item is read once
 ([`ChunkedLineItemExtractor`](src/Extraction/ChunkedLineItemExtractor.php)). A piece whose
 answer still hits `max_tokens` is halved at a line break and read again; only a small piece
-that still overflows fails the tender.
+that still overflows fails the tender. Every piece after the first is given the document's
+title, the table header and the section heading above it as a `<context>` block
+([`PieceContext`](src/Extraction/PieceContext.php)) — "Type A to open plan 585 m2" has no
+trade without "FLOOR FINISHES". Quotes are checked against the piece alone, so an item
+lifted from the context is rejected.
 
 **A bounded repair loop, with no silent drops.** Items that fail validation go back to the
 model with the concrete reasons ([`LlmLineItemExtractor`](src/Extraction/LlmLineItemExtractor.php)).
@@ -64,11 +81,11 @@ review. A wrong one gets priced and built.
 rating, specialist before generalist, over the `suppliers` table. RFQ text comes from a
 template. Both have to be explainable and exact, and neither needs a model.
 
-**Evals are part of the codebase.** `evals/cases/` holds five fictional documents in the
-shapes estimators get: a tabular BoQ, prose specification, a site email, an M&E schedule, and
-a file of traps (totals, exclusions, provisional sums, quantities that would need
-calculating). `php artisan rfq:eval` scores precision and recall and checks required
-warnings, with tokens, cost and latency per case. Given several `--model` / `--effort`
+**Evals are part of the codebase.** `evals/cases/` holds six fictional documents in the
+shapes estimators get: a tabular BoQ, prose specification, a site email, an M&E schedule, a
+file of traps (totals, exclusions, provisional sums, quantities that would need
+calculating), and a finishes schedule whose trades only its headings give, always read in
+pieces. `php artisan rfq:draft-case {tender} {slug}` starts a new case from a real tender. `php artisan rfq:eval` scores precision and recall and checks required warnings, with tokens, cost and latency per case. Given several `--model` / `--effort`
 values it runs the grid and writes a comparison table to `evals/results/`, which is
 committed with the decision it supports.
 
@@ -103,7 +120,9 @@ database/data/            fictional demo suppliers (seeded)
 
 ## Running it
 
-Requires PHP 8.4 and Composer. It uses SQLite, so there is nothing else to install.
+Requires PHP 8.4 and Composer. It uses SQLite. For PDFs install poppler, and tesseract for
+scans (`brew install poppler tesseract` / `apt install poppler-utils tesseract-ocr`); without
+them PDFs are read in drawing order and scans are refused.
 
 ```bash
 composer setup
@@ -142,31 +161,32 @@ None yet — and that matters. The default (`claude-opus-5` at `medium` effort) 
 point, not a measured choice: extraction is closer to reading than reasoning, so a cheaper
 model or lower effort may hold the same quality. The grid above is how that gets decided;
 its table goes in `evals/results/` and the default in `config/rfq.php` changes only with it.
-Five fictional cases are also too few to separate close settings — the first real documents
+Six fictional cases are also too few to separate close settings — the first real documents
 should become cases before the numbers are trusted.
 
 ## What breaks first
 
-Known weaknesses, roughly in the order a real tender would hit them:
+Known weaknesses, roughly in the order a real tender would hit them. Each says what has been
+done about it and what is left.
 
-1. **Scans and drawings.** A PDF without a text layer is refused. Most real BoQs are
-   generated PDFs or spreadsheets, but site mark-ups and older bills are scans; that needs OCR
-   and a different grounding story (checking against OCR text is checking against a guess).
-2. **Context lost between pieces.** A long document is split without overlap. A section
-   heading ("PARTITIONS") or a table header whose units apply to rows further down is not
-   seen by the next piece, so trade classification there is weaker and bare-number
-   quantities fall back to the looser check.
-3. **Trade and description are not grounded.** The validator proves the quote and the
-   quantity; it cannot prove that "door and frame, including decoration" belongs to doors.
-   Misclassification only shows up in evals and at review.
-4. **PDF layout.** Text extraction follows the PDF's drawing order. Multi-column layouts and
-   wrapped table cells can interleave, so a quantity can end up on another item's line. The
-   quote check verifies against that extracted text, so it cannot tell a faithful quote of a
-   scrambled line from a correct one — a wrong description/quantity pairing can pass.
+1. **Scans.** Now read by OCR, but OCR text is a reading, not the file: the quote check
+   cannot see a misread digit. OCR'd tenders say so in `needs_review`. Left: per-word
+   confidence from tesseract, to send low-confidence lines straight to review.
+2. **Context between pieces.** Later pieces now get the title, table header and nearest
+   heading. Left: only one heading level is carried, so in a nested bill ("LEVEL 2" above
+   "FLOOR FINISHES") the outer level is lost unless it is in the title block. Not yet measured:
+   compare `rfq:eval --case=06` with and without `--without-context`.
+3. **Trade.** Contradictions are caught; a plausible wrong trade is not ("door and frame,
+   including decoration" as decoration passes, because decoration's word is there). The
+   keyword lists will also meet trade vocabulary they do not know — unknown words pass, so
+   that errs towards missing a contradiction, not towards rejecting correct items.
+4. **PDF layout.** Tables are read by position, which fixes column-by-column drawing. Left:
+   two-column prose (some specifications) is placed side by side on one line, and wrapped
+   cells can still split a description from its quantity.
 5. **Conventions the checks do not know.** Quantities in words ("two doorsets"), imperial
    units, and unusual unit spellings are rejected, not guessed. Safe, but noisy.
-6. **Five fictional cases.** They were written by the author, including the traps, so they
-   test what the author thought of. Real documents will find the rest.
+6. **Fictional cases.** All six were written by the author. `rfq:draft-case` makes a real
+   tender into a case draft in minutes, but only real documents can fix this.
 
 ## Product hypotheses (unverified)
 
@@ -185,8 +205,7 @@ Nothing below has been checked with a customer yet. It is the plan for checking 
 
 ## What production would add
 
-- OCR for scanned PDFs, with the quote check run against the OCR text and low-confidence
-  regions sent straight to review.
+- OCR confidence per word, so low-confidence lines go straight to review.
 - A review screen for `needs_review`, where an estimator's corrections become new eval
   cases — the loop that makes the evals grow from real failures instead of imagined ones.
 - Tenants, authentication, and bid history feeding the supplier rating.
