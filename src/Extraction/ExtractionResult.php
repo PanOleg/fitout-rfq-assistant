@@ -25,6 +25,8 @@ final readonly class ExtractionResult
         public int $attempts,
         public int $durationMs,
         public bool $fromCache = false,
+        // Set only by rfq:eval when the call itself failed; production raises instead.
+        public ?string $error = null,
     ) {}
 
     public function servedFromCache(): self
@@ -81,6 +83,7 @@ final readonly class ExtractionResult
             'attempts' => $this->attempts,
             'duration_ms' => $this->durationMs,
             'from_cache' => $this->fromCache,
+            ...($this->error === null ? [] : ['error' => $this->error]),
         ];
     }
 

@@ -11,9 +11,12 @@ use FitOut\Evals\RunSummary;
 use FitOut\Evals\Scorer;
 use FitOut\Extraction\ChunkedLineItemExtractor;
 use FitOut\Extraction\ExtractionPrompt;
+use FitOut\Extraction\ExtractionResult;
 use FitOut\Extraction\GroundingValidator;
 use FitOut\Extraction\LlmLineItemExtractor;
 use FitOut\Llm\Anthropic\AnthropicLlmClient;
+use FitOut\Llm\Exceptions\LlmException;
+use FitOut\Llm\Usage;
 use Illuminate\Console\Command;
 
 /**
@@ -102,7 +105,14 @@ final class RunEvals extends Command
         foreach ($cases as $case) {
             $this->line("  <comment>{$case->name}</comment> …");
             $extractor = new ChunkedLineItemExtractor($llm, $case->chunkChars ?? config('rfq.llm.chunk_chars'), withContext: ! $this->option('without-context'));
-            $scores[] = $score = $scorer->score($case, $extractor->extract($case->document));
+            try {
+                $result = $extractor->extract($case->document);
+            } catch (LlmException $e) {
+                // One failed case must not cost the whole grid: it scores as all-missed and is counted.
+                $this->line('      <fg=red>error: '.$e::class.': '.$e->getMessage().'</>');
+                $result = new ExtractionResult([], ['error: '.$e->getMessage()], [], $model, ExtractionPrompt::VERSION, new Usage, 0, 0, error: $e->getMessage());
+            }
+            $scores[] = $score = $scorer->score($case, $result);
             foreach ([...array_map(fn ($m) => "missed: {$m}", $score->missed), ...array_map(fn ($u) => "unexpected: {$u}", $score->unexpected), ...array_map(fn ($w) => "no warning about: {$w}", $score->unflagged)] as $problem) {
                 $this->line("      <fg=red>{$problem}</>");
             }

@@ -28,7 +28,7 @@ final class RunSummaryTest extends TestCase
         $this->assertSame(0.008, round($summary->costUsd, 4)); // 2 × (1000 in × $2/M + 200 out × $10/M)
 
         $table = RunSummary::markdown([$summary], 'prompt v1');
-        $this->assertStringContainsString('| claude-sonnet-5 | low | 0/2 | 0.83 | 0.83 | 0 | $0.0080 | $0.0040 | 3.0 s |', $table);
+        $this->assertStringContainsString('| claude-sonnet-5 | low | 0/2 | 0.83 | 0.83 | 0 | 0 | $0.0080 | $0.0040 | 3.0 s |', $table);
     }
 
     /** @param list<string> $unexpected */

@@ -93,6 +93,29 @@ final class ChunkedLineItemExtractorTest extends TestCase
     }
 
     #[Test]
+    public function a_small_piece_that_overflows_once_is_retried(): void
+    {
+        $llm = new class implements LlmClient
+        {
+            public int $calls = 0;
+
+            public function structured(StructuredRequest $request): StructuredResponse
+            {
+                if (++$this->calls === 1) {
+                    throw new LlmOutputTruncated('Response exceeded 16000 tokens.');
+                }
+
+                return (new ScriptedLlmClient(['items' => [], 'warnings' => ['ok']]))->structured($request);
+            }
+        };
+
+        $result = (new ChunkedLineItemExtractor(new LlmLineItemExtractor($llm), maxChars: 1000, minChars: 1000))->extract(self::DOCUMENT);
+
+        $this->assertSame(2, $llm->calls);
+        $this->assertSame(['ok'], $result->warnings);
+    }
+
+    #[Test]
     public function a_small_piece_that_still_overflows_fails(): void
     {
         $llm = new class implements LlmClient

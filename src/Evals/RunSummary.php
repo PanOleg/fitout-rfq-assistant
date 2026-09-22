@@ -18,6 +18,7 @@ final readonly class RunSummary
         public float $precision,
         public float $recall,
         public int $rejected,
+        public int $errors,
         public float $costUsd,
         public int $totalMs,
     ) {}
@@ -38,6 +39,7 @@ final readonly class RunSummary
             precision: $extracted === 0 ? 1.0 : $matched / $extracted,
             recall: $expected === 0 ? 1.0 : $matched / $expected,
             rejected: (int) $sum(static fn (CaseScore $s): int => count($s->result->rejected)),
+            errors: count(array_filter($scores, static fn (CaseScore $s): bool => $s->result->error !== null)),
             costUsd: (float) $sum(static fn (CaseScore $s): float => $s->result->costUsd() ?? 0.0),
             totalMs: (int) $sum(static fn (CaseScore $s): int => $s->result->durationMs),
         );
@@ -47,14 +49,14 @@ final readonly class RunSummary
     public static function markdown(array $runs, string $heading): string
     {
         $rows = array_map(static fn (self $r): string => sprintf(
-            '| %s | %s | %d/%d | %.2f | %.2f | %d | $%.4f | $%.4f | %.1f s |',
-            $r->model, $r->effort, $r->passed, $r->cases, $r->precision, $r->recall, $r->rejected,
+            '| %s | %s | %d/%d | %.2f | %.2f | %d | %d | $%.4f | $%.4f | %.1f s |',
+            $r->model, $r->effort, $r->passed, $r->cases, $r->precision, $r->recall, $r->rejected, $r->errors,
             $r->costUsd, $r->costUsd / $r->cases, $r->totalMs / $r->cases / 1000,
         ), $runs);
 
         return "## {$heading}\n\n"
-            ."| model | effort | cases passed | precision | recall | rejected | cost | cost / case | latency / case |\n"
-            ."|---|---|---|---|---|---|---|---|---|\n"
+            ."| model | effort | cases passed | precision | recall | rejected | errors | cost | cost / case | latency / case |\n"
+            ."|---|---|---|---|---|---|---|---|---|---|\n"
             .implode("\n", $rows)."\n";
     }
 }

@@ -13,8 +13,8 @@ use FitOut\Llm\Exceptions\LlmOutputTruncated;
  * section headings above it (PieceContext), so it is not read blind.
  *
  * If a piece still produces more output than one call allows, it is halved at
- * a line break and each half read again, down to $minChars. Only a piece that
- * small (or a single line) which still overflows fails the tender.
+ * a line break and each half read again, down to $minChars. A piece that small
+ * (or a single line) is retried once, then fails the tender.
  */
 final readonly class ChunkedLineItemExtractor implements LineItemExtractor
 {
@@ -40,7 +40,7 @@ final readonly class ChunkedLineItemExtractor implements LineItemExtractor
     }
 
     /** $offset is where $piece starts in $document; every piece after the first is given the context before it. */
-    private function extractPiece(string $document, string $piece, int $offset, string $outer): ExtractionResult
+    private function extractPiece(string $document, string $piece, int $offset, string $outer, bool $retried = false): ExtractionResult
     {
         $context = $offset === 0 || ! $this->withContext ? $outer : PieceContext::before($document, $offset);
 
@@ -49,7 +49,14 @@ final readonly class ChunkedLineItemExtractor implements LineItemExtractor
         } catch (LlmOutputTruncated $e) {
             $halves = mb_strlen($piece) > $this->minChars ? self::halve($piece) : null;
             if ($halves === null) {
-                throw $e;
+                // A small piece does not overflow by being too long: the answer ran away
+                // (seen in evals: 16k tokens for a document that normally takes 1.2k).
+                // That is a sampling accident, so it gets one more try.
+                if ($retried) {
+                    throw $e;
+                }
+
+                return $this->extractPiece($document, $piece, $offset, $outer, retried: true);
             }
 
             return ExtractionResult::merge([
