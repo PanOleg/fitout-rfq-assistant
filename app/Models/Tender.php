@@ -19,6 +19,7 @@ use Illuminate\Support\Carbon;
  * @property CarbonImmutable $return_by
  * @property string $document
  * @property ?string $source_filename
+ * @property ?string $read_by
  * @property TenderStatus $status
  * @property ?array<string, mixed> $extraction
  * @property ?string $failure

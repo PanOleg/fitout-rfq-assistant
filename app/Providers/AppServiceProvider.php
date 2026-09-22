@@ -10,6 +10,7 @@ use FitOut\Extraction\CachingLineItemExtractor;
 use FitOut\Extraction\ChunkedLineItemExtractor;
 use FitOut\Extraction\LineItemExtractor;
 use FitOut\Extraction\LlmLineItemExtractor;
+use FitOut\Ingestion\DocumentReader;
 use FitOut\Llm\Anthropic\AnthropicLlmClient;
 use FitOut\Llm\LlmClient;
 use FitOut\Suppliers\SupplierDirectory;
@@ -36,6 +37,12 @@ class AppServiceProvider extends ServiceProvider
             ),
             Cache::store(),
             config('rfq.llm.model').':'.config('rfq.llm.effort'),
+        ));
+
+        $this->app->singleton(DocumentReader::class, fn (): DocumentReader => new DocumentReader(
+            pdftotext: config('rfq.ingestion.pdftotext'),
+            pdftoppm: config('rfq.ingestion.pdftoppm'),
+            tesseract: config('rfq.ingestion.tesseract'),
         ));
 
         $this->app->singleton(SupplierDirectory::class, EloquentSupplierDirectory::class);

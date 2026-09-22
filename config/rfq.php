@@ -21,4 +21,12 @@ return [
     'max_document_chars' => 200_000,
 
     'max_upload_kb' => 20_480,
+
+    // Paths to poppler and tesseract; null finds them on PATH. Without pdftotext, PDFs are
+    // read in drawing order; without pdftoppm + tesseract, scanned PDFs are refused.
+    'ingestion' => [
+        'pdftotext' => env('RFQ_PDFTOTEXT'),
+        'pdftoppm' => env('RFQ_PDFTOPPM'),
+        'tesseract' => env('RFQ_TESSERACT'),
+    ],
 ];

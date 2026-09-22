@@ -10,7 +10,8 @@ use App\Jobs\ExtractTender;
 use App\Models\Tender;
 use App\Models\TenderStatus;
 use FitOut\Domain\WorkPackage;
-use FitOut\Ingestion\DocumentText;
+use FitOut\Ingestion\DocumentReader;
+use FitOut\Ingestion\ReadDocument;
 use FitOut\Ingestion\UnreadableDocument;
 use FitOut\Rfq\RfqComposer;
 use FitOut\Rfq\RfqDraft;
@@ -27,17 +28,19 @@ final class TenderController
      * The key is bound to the request it was first used with — reusing it for
      * a different document is a client bug and gets a 422, not the old tender.
      */
-    public function store(StoreTenderRequest $request): JsonResponse
+    public function store(StoreTenderRequest $request, DocumentReader $reader): JsonResponse
     {
         $key = $request->header('Idempotency-Key');
-        $fields = $request->safe()->only(['name', 'region', 'return_by', 'document']);
+        $fields = [...$request->safe()->only(['name', 'region', 'return_by', 'document']), 'read_by' => ReadDocument::TEXT];
 
         $file = $request->file('file');
         if ($file instanceof UploadedFile) {
             try {
                 /** @var 'pdf'|'xlsx'|'csv'|'txt' $format validated by StoreTenderRequest */
                 $format = strtolower($file->getClientOriginalExtension());
-                $fields['document'] = DocumentText::fromFile($file->getRealPath(), $format);
+                $read = $reader->read($file->getRealPath(), $format);
+                $fields['document'] = $read->text;
+                $fields['read_by'] = $read->method;
             } catch (UnreadableDocument $e) {
                 return response()->json(['message' => $e->getMessage(), 'errors' => ['file' => [$e->getMessage()]]], 422);
             }

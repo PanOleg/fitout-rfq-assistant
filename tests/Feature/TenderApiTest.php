@@ -7,6 +7,7 @@ namespace Tests\Feature;
 use App\Models\Tender;
 use Database\Seeders\SupplierSeeder;
 use FitOut\Extraction\ExtractionPrompt;
+use FitOut\Ingestion\DocumentReader;
 use FitOut\Llm\Exceptions\LlmRefused;
 use FitOut\Llm\LlmClient;
 use FitOut\Llm\StructuredRequest;
@@ -98,21 +99,22 @@ final class TenderApiTest extends TestCase
         unset($payload['document']);
         $id = $this->post('/api/tenders', $payload, ['Accept' => 'application/json'])->assertAccepted()->json('data.id');
 
-        $this->assertStringContainsString('Carpet tiles 500x500, open plan                  640 m2', $llm->requests[0]->messages[0]['content']);
+        $this->assertMatchesRegularExpression('/Carpet tiles 500x500, open plan\s+640 m2/', $llm->requests[0]->messages[0]['content']);
         $this->getJson("/api/tenders/{$id}")
             ->assertJsonPath('data.source_filename', 'schedule.pdf')
             ->assertJsonCount(2, 'data.packages');
     }
 
     #[Test]
-    public function a_scanned_pdf_is_refused_with_a_reason(): void
+    public function a_scanned_pdf_is_refused_with_a_reason_where_ocr_is_not_installed(): void
     {
+        $this->app->instance(DocumentReader::class, new DocumentReader(pdftoppm: false, tesseract: false));
         $payload = ['file' => UploadedFile::fake()->createWithContent('scan.pdf', MinimalPdf::withLines([]))] + $this->payload();
         unset($payload['document']);
 
         $this->post('/api/tenders', $payload, ['Accept' => 'application/json'])
             ->assertUnprocessable()
-            ->assertJsonPath('errors.file.0', 'The PDF has no text layer — it looks scanned. Scanned documents need OCR, which is not supported yet.');
+            ->assertJsonPath('errors.file.0', 'The PDF has no text layer — it looks scanned — and OCR is not available on this server.');
 
         $this->assertSame(0, Tender::query()->count());
     }

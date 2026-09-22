@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\Http\Requests;
 
-use FitOut\Ingestion\DocumentText;
+use FitOut\Ingestion\DocumentReader;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
@@ -19,7 +19,7 @@ final class StoreTenderRequest extends FormRequest
             'return_by' => ['required', 'date', 'after:today'],
             'document' => ['required_without:file', 'prohibits:file', 'string', 'min:20', 'max:'.config('rfq.max_document_chars')],
             // Converted to text in the controller; the same length limit applies to the result.
-            'file' => ['required_without:document', 'file', 'extensions:'.implode(',', DocumentText::FORMATS), 'max:'.config('rfq.max_upload_kb')],
+            'file' => ['required_without:document', 'file', 'extensions:'.implode(',', DocumentReader::FORMATS), 'max:'.config('rfq.max_upload_kb')],
         ];
     }
 }
