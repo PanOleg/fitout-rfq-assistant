@@ -23,7 +23,7 @@ final class GroundingValidator
      * Bump when a check changes. It is part of the extraction cache key, so a
      * result accepted under weaker checks is never replayed as clean.
      */
-    public const VERSION = '4';
+    public const VERSION = '5';
 
     /**
      * @param  array<string, mixed>  $item
@@ -94,7 +94,7 @@ final class GroundingValidator
         );
         $said = static function (Trade $t) use ($text): ?string {
             foreach ($t->keywords() as $keyword) {
-                if (preg_match('~\b(?:'.$keyword.')~u', $text, $m) === 1) {
+                if (preg_match('~\b(?:'.$keyword.')\b~u', $text, $m) === 1) {
                     return $m[0];
                 }
             }
@@ -163,7 +163,7 @@ final class GroundingValidator
     /**
      * Every number in the text that could be read as a quantity, with the unit
      * written right after it (if any) and whether it is part of a dimension
-     * ("600x600", "3.0 x 2.5 m") or a rate ("420 m2 per floor").
+     * ("600x600", "3.0 x 2.5 m", "3.2 m high") or a rate ("420 m2 per floor").
      *
      * `other` marks numbers glued to a reference ("K10/120", "PS-1", "FD30"),
      * money ("£5,000") and the ends of ranges ("levels 1-3").
@@ -189,15 +189,20 @@ final class GroundingValidator
 
             $unit = null;
             $rate = false;
+            $size = false;
             if (preg_match('~^\s*(?:\|\s*)?('.$aliases.')(?![a-z0-9])~', $after, $u) === 1) {
                 $unit = Unit::fromAlias($u[1]);
-                $rate = preg_match('~^\s*(?:per\b|/\s*[a-z])~', substr($after, strlen($u[0]))) === 1;
+                $rest = substr($after, strlen($u[0]));
+                $rate = preg_match('~^\s*(?:per\b|/\s*[a-z])~', $rest) === 1;
+                // "3.2 m high" describes the thing, it does not measure the work ("long" is left
+                // out: "45 m long" is usually the run being measured).
+                $size = preg_match('~^\s*(?:high|wide|deep|thick|girth|diameter|dia)\b~', $rest) === 1;
             }
 
             $numbers[] = [
                 'value' => (float) str_replace(',', '', $raw),
                 'unit' => $unit,
-                'dimension' => preg_match('~\d\s*x\s*$~', $before) === 1 || preg_match('~^\s*(?:mm|m)?\s*x\s*\d~', $after) === 1,
+                'dimension' => $size || preg_match('~\d\s*x\s*$~', $before) === 1 || preg_match('~^\s*(?:mm|m)?\s*x\s*\d~', $after) === 1,
                 'rate' => $rate,
                 'other' => preg_match('~[a-z0-9./£$€-]$~', $before) === 1 || preg_match('~^-\d~', $after) === 1,
             ];

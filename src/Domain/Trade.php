@@ -40,25 +40,26 @@ enum Trade: string
 
     /**
      * Words a line of that trade is written with, as regex fragments matched
-     * from a word boundary over lower-cased text. Not a classifier: the trade
-     * is still the model's call. These only catch a quote that plainly belongs
-     * somewhere else — "carpet tiles" filed under ceilings.
+     * as whole words over lower-cased text — "lighting" but not "lightweight",
+     * "stud" but not "studio". Not a classifier: the trade is still the
+     * model's call. These only catch a quote that plainly belongs somewhere
+     * else — "carpet tiles" filed under ceilings.
      *
      * @return list<string>
      */
     public function keywords(): array
     {
         return match ($this) {
-            self::Partitions => ['partition', 'stud', 'plasterboard', 'dry-?\s?lining', 'soundbloc', 'acoustic insulation', 'apr insulation', 'glazed screen'],
-            self::Ceilings => ['ceiling', 'bulkhead', 'raft', 'mineral tile', 'exposed grid', 'suspended grid', 'margin', 'mf\b'],
-            self::Doors => ['doors?\b', 'doorsets?', 'ironmongery', 'door closers?', 'fd\d0'],
-            self::Joinery => ['joinery', 'kitchen', 'tea point', 'vanity', 'reception desk', 'shelving', 'skirting', 'panelling', 'worktop', 'wall units', 'base units', 'cupboard'],
-            self::Flooring => ['carpet', 'lvt\b', 'vinyl', 'raised access floor', 'screed', 'matting', 'flooring', 'floor finish'],
-            self::Decoration => ['paint', 'emulsion', 'decorat', 'wallcovering', 'wallpaper', 'manifestation', 'mist coat'],
-            self::Mechanical => ['hvac', 'fan coil', 'fcus?\b', 'duct', 'grilles?', 'diffusers?', 'vrf\b', 'ahu\b', 'air handling', 'ventilation'],
-            self::Electrical => ['light', 'luminaire', 'led\b', 'pendant', 'downlight', 'socket', 'small power', 'data\b', 'containment', 'cable', 'floor box', 'fire alarm', 'access control', 'dali\b'],
-            self::Plumbing => ['plumbing', 'sanitary', 'wcs?\b', 'basins?', 'pans?\b', 'urinals?', 'sinks?\b', 'taps?\b', 'pipework', 'hot and cold water', 'cold water', 'waste pipe', 'drainage', 'shower'],
-            self::FireProtection => ['sprinkler', 'fire[- ]?stopping', 'intumescent', 'fire curtain', 'fire protection', 'fire collar', 'fire batt'],
+            self::Partitions => ['partitions?', 'studs?', 'stud ?work', 'plasterboard', 'dry-?\\s?lining', 'soundbloc', 'acoustic insulation', 'apr insulation', 'glazed screens?'],
+            self::Ceilings => ['ceilings?', 'bulkheads?', 'rafts?', 'mineral tiles?', 'exposed grid', 'suspended grid', 'margins?', 'mf'],
+            self::Doors => ['doors?', 'doorsets?', 'ironmongery', 'door closers?', 'fd\\d0'],
+            self::Joinery => ['joinery', 'kitchens?', 'tea points?', 'vanity', 'reception desks?', 'shelving', 'skirtings?', 'panelling', 'worktops?', 'wall units', 'base units', 'cupboards?', 'cubicles?'],
+            self::Flooring => ['carpets?', 'lvt', 'vinyl', 'raised access floor(?:ing)?', 'screed', 'matting', 'flooring', 'floor finish(?:es)?'],
+            self::Decoration => ['paint(?:s|ed|ing|work)?', 'emulsion', 'decorat(?:e|ed|ing|ion|ions|or|ors)', 'wallcoverings?', 'wallpaper', 'manifestations?', 'mist coat'],
+            self::Mechanical => ['hvac', 'fan coils?', 'fcus?', 'duct(?:s|work|ing)?', 'grilles?', 'diffusers?', 'vrf', 'ahus?', 'air handling', 'ventilation'],
+            self::Electrical => ['light(?:s|ing)?', 'luminaires?', 'led', 'pendants?', 'downlights?', 'sockets?', 'small power', 'data', 'containment', 'cables?', 'cabling', 'floor box(?:es)?', 'fire alarm', 'access control', 'dali'],
+            self::Plumbing => ['plumbing', 'sanitary(?:ware)?', 'wcs?', 'basins?', 'pans?', 'urinals?', 'sinks?', 'taps?', 'pipework', 'hot and cold water', 'cold water', 'waste pipes?', 'drainage', 'showers?'],
+            self::FireProtection => ['sprinklers?', 'fire[- ]?stopping', 'intumescent', 'fire curtains?', 'fire protection', 'fire collars?', 'fire batts?'],
         };
     }
 

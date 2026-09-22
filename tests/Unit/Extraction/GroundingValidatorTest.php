@@ -130,6 +130,34 @@ final class GroundingValidatorTest extends TestCase
     }
 
     /**
+     * Counter-examples from review: each once passed or failed the wrong way.
+     *
+     * @return iterable<string, array{string, string, float, string, ?string}>
+     */
+    public static function reviewCounterExamples(): iterable
+    {
+        yield 'a height is not a quantity' => ['Metal stud partition, 3.2 m high, 45 m', 'partitions', 3.2, 'm', 'is a dimension'];
+        yield 'the length next to a height is' => ['Metal stud partition, 3.2 m high, 45 m', 'partitions', 45, 'm', null];
+        yield '"lightweight" is not lighting' => ['Lightweight partition 60 m2', 'electrical', 60, 'm2', 'reads as partitions'];
+        yield '"studio" is not stud' => ['Studio lighting track 20 m', 'partitions', 20, 'm', 'reads as electrical'];
+        yield 'WC cubicles are joinery' => ['WC cubicles, 6 nr', 'joinery', 6, 'nr', null];
+    }
+
+    #[Test]
+    #[DataProvider('reviewCounterExamples')]
+    public function review_counter_examples(string $source, string $trade, float $quantity, string $unit, ?string $reason): void
+    {
+        $problems = (new GroundingValidator)->problems($this->item(['trade' => $trade, 'quantity' => $quantity, 'unit' => $unit, 'source_text' => $source]), $source);
+
+        if ($reason === null) {
+            $this->assertSame([], $problems);
+        } else {
+            $this->assertCount(1, $problems);
+            $this->assertStringContainsString($reason, $problems[0]);
+        }
+    }
+
+    /**
      * The checks must never reject what the golden cases say is correct: every
      * expected item must have a faithful quote that passes — the line it sits
      * on, or that line with the one before when the item wraps (as the tea
