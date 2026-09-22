@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace Tests\Unit\Ingestion;
 
 use FitOut\Extraction\GroundingValidator;
-use FitOut\Ingestion\DocumentReader;
+use FitOut\Ingestion\Local\LocalDocumentReader;
 use FitOut\Ingestion\ReadDocument;
 use FitOut\Ingestion\UnreadableDocument;
 use OpenSpout\Common\Entity\Cell;
@@ -20,7 +20,7 @@ use Tests\Support\MinimalPdf;
  * The poppler and tesseract paths run where those tools are installed (CI
  * installs them) and are skipped elsewhere; the fallbacks always run.
  */
-final class DocumentReaderTest extends TestCase
+final class LocalDocumentReaderTest extends TestCase
 {
     /** @var list<string> */
     private array $files = [];
@@ -41,7 +41,7 @@ final class DocumentReaderTest extends TestCase
             ['M50/020  Entrance matting, recessed', '12 m2'],
         ]));
 
-        $read = (new DocumentReader)->read($path, 'pdf');
+        $read = (new LocalDocumentReader)->read($path, 'pdf');
 
         $this->assertSame(ReadDocument::PDF_LAYOUT, $read->method);
         $this->assertMatchesRegularExpression('/Carpet tiles to open plan\s+640 m2\n/', $read->text);
@@ -53,7 +53,7 @@ final class DocumentReaderTest extends TestCase
     {
         $path = $this->file('pdf', MinimalPdf::withLines(['K10/110  Metal stud partition    312  m2', 'M50/010  Carpet tiles 500x500   690  m2']));
 
-        $read = (new DocumentReader(pdftotext: false))->read($path, 'pdf');
+        $read = (new LocalDocumentReader(pdftotext: false))->read($path, 'pdf');
 
         $this->assertSame(ReadDocument::PDF_TEXT, $read->method);
         $this->assertStringContainsString("Metal stud partition    312  m2\n", $read->text);
@@ -62,7 +62,7 @@ final class DocumentReaderTest extends TestCase
     #[Test]
     public function a_scan_is_recognised_and_marked_as_ocr(): void
     {
-        $reader = new DocumentReader;
+        $reader = new LocalDocumentReader;
         if (! $reader->canOcr()) {
             $this->markTestSkipped('pdftoppm and tesseract are not installed.');
         }
@@ -86,7 +86,7 @@ final class DocumentReaderTest extends TestCase
         $this->expectException(UnreadableDocument::class);
         $this->expectExceptionMessage('looks scanned — and OCR is not available on this server');
 
-        (new DocumentReader(pdftoppm: false, tesseract: false))->read($path, 'pdf');
+        (new LocalDocumentReader(pdftoppm: false, tesseract: false))->read($path, 'pdf');
     }
 
     #[Test]
@@ -100,7 +100,7 @@ final class DocumentReaderTest extends TestCase
         $writer->addRow(new Row([0 => Cell::fromValue('K10/110'), 1 => Cell::fromValue('Metal stud partition, 70mm'), 3 => Cell::fromValue(312.0), 4 => Cell::fromValue('m2')]));
         $writer->close();
 
-        $read = (new DocumentReader)->read($path, 'xlsx');
+        $read = (new LocalDocumentReader)->read($path, 'xlsx');
         $line = "K10/110\tMetal stud partition, 70mm\t\t312\tm2";
 
         $this->assertSame(ReadDocument::SPREADSHEET, $read->method);
@@ -116,7 +116,7 @@ final class DocumentReaderTest extends TestCase
     {
         $path = $this->file('csv', "Description,Qty,Unit\nCarpet tiles to open plan,640,m2\n");
 
-        $this->assertStringContainsString("Carpet tiles to open plan\t640\tm2", (new DocumentReader)->read($path, 'csv')->text);
+        $this->assertStringContainsString("Carpet tiles to open plan\t640\tm2", (new LocalDocumentReader)->read($path, 'csv')->text);
     }
 
     private function file(string $extension, ?string $contents = null): string

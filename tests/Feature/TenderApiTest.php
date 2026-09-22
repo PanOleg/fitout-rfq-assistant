@@ -8,6 +8,7 @@ use App\Models\Tender;
 use Database\Seeders\SupplierSeeder;
 use FitOut\Extraction\ExtractionPrompt;
 use FitOut\Ingestion\DocumentReader;
+use FitOut\Ingestion\Local\LocalDocumentReader;
 use FitOut\Llm\Exceptions\LlmRefused;
 use FitOut\Llm\LlmClient;
 use FitOut\Llm\StructuredRequest;
@@ -108,7 +109,7 @@ final class TenderApiTest extends TestCase
     #[Test]
     public function a_scanned_pdf_is_refused_with_a_reason_where_ocr_is_not_installed(): void
     {
-        $this->app->instance(DocumentReader::class, new DocumentReader(pdftoppm: false, tesseract: false));
+        $this->app->instance(DocumentReader::class, new LocalDocumentReader(pdftoppm: false, tesseract: false));
         $payload = ['file' => UploadedFile::fake()->createWithContent('scan.pdf', MinimalPdf::withLines([]))] + $this->payload();
         unset($payload['document']);
 

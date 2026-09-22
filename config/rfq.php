@@ -28,5 +28,7 @@ return [
         'pdftotext' => env('RFQ_PDFTOTEXT'),
         'pdftoppm' => env('RFQ_PDFTOPPM'),
         'tesseract' => env('RFQ_TESSERACT'),
+        // Caps how much work one upload can cause (OCR is ~1–3 s a page).
+        'max_pages' => 200,
     ],
 ];
