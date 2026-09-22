@@ -32,6 +32,36 @@ final readonly class ExtractionResult
         return new self($this->items, $this->warnings, $this->rejected, $this->model, $this->promptVersion, $this->usage, $this->attempts, $this->durationMs, true);
     }
 
+    /**
+     * Combines results for consecutive pieces of one document. Rejected items
+     * keep a position that is unique across the whole document.
+     *
+     * @param  non-empty-list<self>  $parts
+     */
+    public static function merge(array $parts): self
+    {
+        if (count($parts) === 1) {
+            return $parts[0];
+        }
+
+        $items = $warnings = $rejected = [];
+        $usage = new Usage;
+        $attempts = $durationMs = $offset = 0;
+        foreach ($parts as $part) {
+            array_push($items, ...$part->items);
+            array_push($warnings, ...$part->warnings);
+            foreach ($part->rejected as $v) {
+                $rejected[] = new Violation($offset + $v->index, $v->item, $v->problems);
+            }
+            $offset += count($part->items) + count($part->rejected);
+            $usage = $usage->plus($part->usage);
+            $attempts += $part->attempts;
+            $durationMs += $part->durationMs;
+        }
+
+        return new self($items, $warnings, $rejected, $parts[0]->model, $parts[0]->promptVersion, $usage, $attempts, $durationMs);
+    }
+
     public function costUsd(): ?float
     {
         return ModelPricing::costUsd($this->model, $this->usage);

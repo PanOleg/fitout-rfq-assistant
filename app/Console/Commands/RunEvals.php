@@ -8,6 +8,7 @@ use Anthropic\Client;
 use FitOut\Evals\CaseScore;
 use FitOut\Evals\EvalCase;
 use FitOut\Evals\Scorer;
+use FitOut\Extraction\ChunkedLineItemExtractor;
 use FitOut\Extraction\LlmLineItemExtractor;
 use FitOut\Llm\Anthropic\AnthropicLlmClient;
 use Illuminate\Console\Command;
@@ -38,7 +39,10 @@ final class RunEvals extends Command
         $model = (string) ($this->option('model') ?: config('rfq.llm.model'));
         $effort = (string) ($this->option('effort') ?: config('rfq.llm.effort'));
         /** @var 'low'|'medium'|'high'|'xhigh'|'max' $effort */
-        $extractor = new LlmLineItemExtractor(new AnthropicLlmClient(new Client(apiKey: config('services.anthropic.key')), $model, $effort));
+        $extractor = new ChunkedLineItemExtractor(
+            new LlmLineItemExtractor(new AnthropicLlmClient(new Client(apiKey: config('services.anthropic.key')), $model, $effort)),
+            config('rfq.llm.chunk_chars'),
+        );
 
         $cases = array_values(array_filter(
             EvalCase::loadDirectory(base_path('evals/cases')),

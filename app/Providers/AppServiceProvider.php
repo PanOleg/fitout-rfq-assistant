@@ -6,6 +6,7 @@ namespace App\Providers;
 
 use Anthropic\Client;
 use FitOut\Extraction\CachingLineItemExtractor;
+use FitOut\Extraction\ChunkedLineItemExtractor;
 use FitOut\Extraction\LineItemExtractor;
 use FitOut\Extraction\LlmLineItemExtractor;
 use FitOut\Llm\Anthropic\AnthropicLlmClient;
@@ -29,7 +30,10 @@ class AppServiceProvider extends ServiceProvider
         ));
 
         $this->app->bind(LineItemExtractor::class, fn (Application $app): LineItemExtractor => new CachingLineItemExtractor(
-            new LlmLineItemExtractor($app->make(LlmClient::class), maxRepairs: config('rfq.llm.max_repairs')),
+            new ChunkedLineItemExtractor(
+                new LlmLineItemExtractor($app->make(LlmClient::class), maxRepairs: config('rfq.llm.max_repairs')),
+                config('rfq.llm.chunk_chars'),
+            ),
             Cache::store(),
             config('rfq.llm.model').':'.config('rfq.llm.effort'),
         ));
