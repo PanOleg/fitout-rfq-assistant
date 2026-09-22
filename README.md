@@ -157,12 +157,32 @@ php artisan rfq:eval --model=claude-opus-5 --model=claude-sonnet-5 \
 
 ## Measured results
 
-None yet — and that matters. The default (`claude-opus-5` at `medium` effort) is a starting
-point, not a measured choice: extraction is closer to reading than reasoning, so a cheaper
-model or lower effort may hold the same quality. The grid above is how that gets decided;
-its table goes in `evals/results/` and the default in `config/rfq.php` changes only with it.
-Six fictional cases are also too few to separate close settings — the first real documents
-should become cases before the numbers are trusted.
+First live run, 2026-09-22, prompt v2, validator 4, six cases, one run per setting
+([`evals/results/20260922-221031.md`](evals/results/20260922-221031.md)):
+
+| model | effort | cases passed | precision | recall | cost / case | latency / case |
+|---|---|---|---|---|---|---|
+| claude-opus-5 | low | 6/6 | 1.00 | 1.00 | $0.033 | 8.9 s |
+| claude-opus-5 | medium | 6/6 | 1.00 | 1.00 | $0.037 | 10.6 s |
+| claude-opus-5 | high | 6/6 | 1.00 | 1.00 | $0.046 | 13.9 s |
+| claude-sonnet-5 | low | 6/6 | 1.00 | 1.00 | $0.013 | 6.9 s |
+| claude-sonnet-5 | medium | 6/6 | 1.00 | 1.00 | $0.014 | 8.2 s |
+| claude-sonnet-5 | high | 6/6 | 1.00 | 1.00 | $0.017 | 11.1 s |
+
+What it says: on these cases every setting is perfect, so the suite no longer separates
+them — it is saturated. Quality cannot decide between them; cost and latency can: Sonnet 5 at
+low effort is about 3× cheaper than the current default (Opus 5 at medium) and faster. What
+it does not say: that Sonnet holds up on harder, real documents. Six fictional cases, one run
+each, cannot show that. The default stays until real cases exist that can tell them apart.
+
+The first attempt at this grid also found three things, all fixed: a runaway answer
+(Sonnet 5 @ high hit 16k output tokens on a document that normally takes ~1.2k; small pieces
+now get one retry), a grid that died with its first failed case, and two defects in case 06.
+
+Piece context, case 06, five runs per mode
+([`evals/results/20260922-context-case06.md`](evals/results/20260922-context-case06.md)):
+without it the model missed a heading-dependent line in 2 of 5 runs, saying it could not see
+the section heading; with it, never.
 
 ## What breaks first
 
