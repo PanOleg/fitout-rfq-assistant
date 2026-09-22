@@ -95,14 +95,12 @@ final class RunEvals extends Command
     private function evaluate(Scorer $scorer, string $model, string $effort, array $cases): RunSummary
     {
         $this->info("{$model} @ {$effort}");
-        $extractor = new ChunkedLineItemExtractor(
-            new LlmLineItemExtractor(new AnthropicLlmClient(new Client(apiKey: config('services.anthropic.key')), $model, $effort)),
-            config('rfq.llm.chunk_chars'),
-        );
+        $llm = new LlmLineItemExtractor(new AnthropicLlmClient(new Client(apiKey: config('services.anthropic.key')), $model, $effort));
 
         $scores = [];
         foreach ($cases as $case) {
             $this->line("  <comment>{$case->name}</comment> …");
+            $extractor = new ChunkedLineItemExtractor($llm, $case->chunkChars ?? config('rfq.llm.chunk_chars'));
             $scores[] = $score = $scorer->score($case, $extractor->extract($case->document));
             foreach ([...array_map(fn ($m) => "missed: {$m}", $score->missed), ...array_map(fn ($u) => "unexpected: {$u}", $score->unexpected), ...array_map(fn ($w) => "no warning about: {$w}", $score->unflagged)] as $problem) {
                 $this->line("      <fg=red>{$problem}</>");

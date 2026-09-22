@@ -1,0 +1,20 @@
+SCHEDULE OF WORKS — 2ND FLOOR, 40 MARKET STREET, LEEDS
+Finishes schedule. Types as the finishes legend on drawing A-210.
+
+Ref     Description                                            Qty     Unit
+
+SUSPENDED CEILINGS
+C-01    Type A, 600x600 tile on 24mm grid, open plan           540     m2
+C-02    Type B, moisture resistant, to WCs and cleaner's store   38     m2
+C-03    Type C, plasterboard margin on MF to perimeter          112     m
+
+FLOOR FINISHES
+F-01    Type A to open plan and meeting rooms                  585     m2
+F-02    Type B to WCs and cleaner's store                        38     m2
+F-03    Type C to tea point                                      26     m2
+F-04    Type D, recessed, to main entrance                        9     m2
+F-05    Type E trims and thresholds at changes of finish         14     nr
+
+WALL FINISHES
+W-01    Type A to new and existing walls, open plan            860     m2
+W-02    Type A to columns, 3.2 m high x 1.8 m girth

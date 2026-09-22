@@ -1,0 +1,15 @@
+{
+  "chunk_chars": 250,
+  "items": [
+    {"trade": "ceilings", "quantity": 540, "unit": "m2", "source_contains": "C-01"},
+    {"trade": "ceilings", "quantity": 38, "unit": "m2", "source_contains": "C-02"},
+    {"trade": "ceilings", "quantity": 112, "unit": "m", "source_contains": "C-03"},
+    {"trade": "flooring", "quantity": 585, "unit": "m2", "source_contains": "F-01"},
+    {"trade": "flooring", "quantity": 38, "unit": "m2", "source_contains": "F-02"},
+    {"trade": "flooring", "quantity": 26, "unit": "m2", "source_contains": "F-03"},
+    {"trade": "flooring", "quantity": 9, "unit": "m2", "source_contains": "F-04"},
+    {"trade": "flooring", "quantity": 14, "unit": "nr", "source_contains": "F-05"},
+    {"trade": "decoration", "quantity": 860, "unit": "m2", "source_contains": "W-01"}
+  ],
+  "warnings_about": ["columns"]
+}
