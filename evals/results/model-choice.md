@@ -28,3 +28,12 @@ seeing the results.
 | date | cases | runs | decision | table |
 |---|---|---|---|---|
 | 2026-09-22 | 01–06 | 1 per setting | keep claude-opus-5 @ medium — suite saturated, cannot separate settings | [20260922-221031.md](20260922-221031.md) |
+| 2026-09-22 | 01–09 | 1 complete per setting (API credit ran out in run 2) | keep claude-opus-5 @ medium — the rule needs ≥ 3 runs, so it cannot be applied yet | [20260922-candidates-9-cases.md](20260922-candidates-9-cases.md) |
+
+## Proposed amendment (not adopted)
+
+Written after seeing the 2026-09-22 data, so it is a proposal for the next decision, not a
+rule applied to that one: **5. No expected item is missed in more than one run.** Sonnet 5 @
+low missed the same line ("4 nr basins", case 03) in both runs it reached, with pooled recall
+0.997 — above every threshold above. A miss that repeats is a blind spot, not noise, and a
+pooled number hides it.
