@@ -53,25 +53,25 @@ final class GroundingValidatorTest extends TestCase
         $this->assertStringContainsString('does not appear in source_text', $problems[0]);
     }
 
-    /** @return iterable<string, array{string, float, string, string}> */
+    /** @return iterable<string, array{string, float, string, string, string}> */
     public static function numbersThatAreNotTheQuantity(): iterable
     {
-        yield 'a per-floor rate' => ['Carpet tiles to open plan, 3 floors at 420 m2 per floor', 420, 'm2', 'is a rate'];
-        yield 'the multiplier of a rate' => ['Carpet tiles to open plan, 3 floors at 420 m2 per floor', 3, 'm2', 'not the number source_text states with a unit'];
-        yield 'one side of a dimension' => ['Entrance matting, recessed, 3.0 x 2.5 m', 2.5, 'm', 'is a dimension'];
-        yield 'the other side' => ['Entrance matting, recessed, 3.0 x 2.5 m', 3, 'm', 'is a dimension'];
-        yield 'a tile size' => ['Suspended ceiling, 600x600 tile, levels 1-3    1,260 m2', 600, 'm2', 'is a dimension'];
-        yield 'a range' => ['Suspended ceiling, 600x600 tile, levels 1-3    1,260 m2', 3, 'm2', 'part of a reference, range or price'];
-        yield 'a reference number' => ['PS-1  Provisional sum for out-of-hours working    £5,000', 1, 'item', 'part of a reference, range or price'];
-        yield 'money' => ['PS-1  Provisional sum for out-of-hours working    £5,000', 5000, 'item', 'part of a reference, range or price'];
+        yield 'a per-floor rate' => ['Carpet tiles to open plan, 3 floors at 420 m2 per floor', 420, 'm2', 'is a rate', 'flooring'];
+        yield 'the multiplier of a rate' => ['Carpet tiles to open plan, 3 floors at 420 m2 per floor', 3, 'm2', 'not the number source_text states with a unit', 'flooring'];
+        yield 'one side of a dimension' => ['Entrance matting, recessed, 3.0 x 2.5 m', 2.5, 'm', 'is a dimension', 'flooring'];
+        yield 'the other side' => ['Entrance matting, recessed, 3.0 x 2.5 m', 3, 'm', 'is a dimension', 'flooring'];
+        yield 'a tile size' => ['Suspended ceiling, 600x600 tile, levels 1-3    1,260 m2', 600, 'm2', 'is a dimension', 'ceilings'];
+        yield 'a range' => ['Suspended ceiling, 600x600 tile, levels 1-3    1,260 m2', 3, 'm2', 'part of a reference, range or price', 'ceilings'];
+        yield 'a reference number' => ['PS-1  Provisional sum for out-of-hours working    £5,000', 1, 'item', 'part of a reference, range or price', 'joinery'];
+        yield 'money' => ['PS-1  Provisional sum for out-of-hours working    £5,000', 5000, 'item', 'part of a reference, range or price', 'joinery'];
     }
 
     #[Test]
     #[DataProvider('numbersThatAreNotTheQuantity')]
-    public function a_number_in_the_quote_that_is_not_its_quantity_is_rejected(string $source, float $quantity, string $unit, string $reason): void
+    public function a_number_in_the_quote_that_is_not_its_quantity_is_rejected(string $source, float $quantity, string $unit, string $reason, string $trade): void
     {
         $problems = (new GroundingValidator)->problems($this->item([
-            'quantity' => $quantity, 'unit' => $unit, 'source_text' => $source,
+            'trade' => $trade, 'quantity' => $quantity, 'unit' => $unit, 'source_text' => $source,
         ]), $source);
 
         $this->assertCount(1, $problems);
@@ -98,28 +98,62 @@ final class GroundingValidatorTest extends TestCase
         $this->assertSame([], $problems);
     }
 
+    #[Test]
+    public function a_trade_its_own_quote_contradicts_is_rejected(): void
+    {
+        $source = 'M50/010  Carpet tiles 500x500, loop pile    690 m2';
+
+        $problems = (new GroundingValidator)->problems($this->item(['trade' => 'ceilings', 'quantity' => 690, 'source_text' => $source]), $source);
+
+        $this->assertSame(['trade ceilings is not supported by source_text, which reads as flooring ("carpet"); correct the trade or explain it in warnings.'], $problems);
+    }
+
+    /** @return iterable<string, array{string, string}> */
+    public static function tradesTheQuoteDoesNotContradict(): iterable
+    {
+        yield 'several trades, including its own' => ['doors', 'Door and frame, including decoration    12 nr'];
+        yield 'no trade words at all' => ['joinery', 'Item 7 as drawing J-204    1 item'];
+        yield 'the word of another trade inside its own' => ['electrical', '118 nr LED recessed panels 600x600'];
+    }
+
+    #[Test]
+    #[DataProvider('tradesTheQuoteDoesNotContradict')]
+    public function a_trade_is_only_rejected_when_the_quote_contradicts_it(string $trade, string $source): void
+    {
+        $quantity = (float) (preg_match('/(\d+)\s+(?:nr|item)/', $source, $m) === 1 ? $m[1] : 0);
+        $unit = str_contains($source, 'item') ? 'item' : 'nr';
+
+        $problems = (new GroundingValidator)->problems($this->item(['trade' => $trade, 'quantity' => $quantity, 'unit' => $unit, 'source_text' => $source]), $source);
+
+        $this->assertSame([], $problems);
+    }
+
     /**
      * The checks must never reject what the golden cases say is correct: every
-     * expected item, quoted as the line it sits on, has to pass.
+     * expected item must have a faithful quote that passes — the line it sits
+     * on, or that line with the one before when the item wraps (as the tea
+     * point in 02 does, where "worktop" and "1 item" are on different lines).
      */
     #[Test]
     public function every_expected_item_in_the_golden_cases_is_grounded(): void
     {
         foreach (EvalCase::loadDirectory(__DIR__.'/../../../evals/cases') as $case) {
             foreach ($case->expected as $expected) {
-                $line = array_find(explode("\n", $case->document), static fn (string $l): bool => str_contains(mb_strtolower($l), mb_strtolower($expected->sourceContains)));
-                $this->assertIsString($line, "{$case->name}: no line contains \"{$expected->sourceContains}\"");
+                $lines = explode("\n", $case->document);
+                $at = array_find_key($lines, static fn (string $l): bool => str_contains(mb_strtolower($l), mb_strtolower($expected->sourceContains)));
+                $this->assertIsInt($at, "{$case->name}: no line contains \"{$expected->sourceContains}\"");
 
-                $problems = (new GroundingValidator)->problems([
+                $quotes = [trim($lines[$at]), ...($at > 0 ? [trim($lines[$at - 1]).' '.trim($lines[$at])] : [])];
+                $problems = array_map(static fn (string $quote): array => (new GroundingValidator)->problems([
                     'trade' => $expected->trade->value,
                     'description' => $expected->sourceContains,
                     'quantity' => $expected->quantity->value,
                     'unit' => $expected->unit->value,
                     'spec_reference' => null,
-                    'source_text' => trim($line),
-                ], $case->document);
+                    'source_text' => $quote,
+                ], $case->document), $quotes);
 
-                $this->assertSame([], $problems, "{$case->name}: {$expected->describe()}");
+                $this->assertContains([], $problems, "{$case->name}: {$expected->describe()} — ".json_encode($problems));
             }
         }
     }

@@ -11,10 +11,11 @@ use FitOut\Domain\Unit;
  * Checks each extracted item against the document it claims to come from.
  *
  * Schema-constrained output guarantees shape, not truth. The failures that
- * matter in a tender are an item that is not in the document, and a quantity
- * or unit the document does not state for that line — a rate multiplied out,
- * a dimension read as an area. All are cheap to detect deterministically, so
- * they are detected here rather than asked about in a prompt.
+ * matter in a tender are an item that is not in the document, a quantity or
+ * unit the document does not state for that line — a rate multiplied out, a
+ * dimension read as an area — and an item filed under a trade its own words
+ * contradict. All are cheap to detect deterministically, so they are
+ * detected here rather than asked about in a prompt.
  */
 final class GroundingValidator
 {
@@ -22,7 +23,7 @@ final class GroundingValidator
      * Bump when a check changes. It is part of the extraction cache key, so a
      * result accepted under weaker checks is never replayed as clean.
      */
-    public const VERSION = '2';
+    public const VERSION = '3';
 
     /**
      * @param  array<string, mixed>  $item
@@ -53,8 +54,11 @@ final class GroundingValidator
         if (! is_string($item['description'] ?? null) || trim($item['description']) === '') {
             $problems[] = 'description is empty.';
         }
-        if (Trade::tryFrom(is_string($item['trade'] ?? null) ? $item['trade'] : '') === null) {
+        $trade = Trade::tryFrom(is_string($item['trade'] ?? null) ? $item['trade'] : '');
+        if ($trade === null) {
             $problems[] = 'trade is not one of the known trades.';
+        } elseif ($source !== '' && ($problem = self::tradeProblem($source, $trade)) !== null) {
+            $problems[] = $problem;
         }
         if (Unit::tryFrom(is_string($item['unit'] ?? null) ? $item['unit'] : '') === null) {
             $problems[] = 'unit is not one of the known units.';
@@ -68,6 +72,41 @@ final class GroundingValidator
         $text = str_replace(['’', '‘', '“', '”', '–', '—', '²', '³'], ["'", "'", '"', '"', '-', '-', '2', '3'], $text);
 
         return mb_strtolower((string) preg_replace('/\s+/u', ' ', trim($text)));
+    }
+
+    /**
+     * The trade is the model's judgement, so it is not proven here — only
+     * contradicted. An item is flagged when its quote has no word of its own
+     * trade but does have words of another one ("carpet tiles" as ceilings).
+     * A quote with no trade words at all, or with words of several trades
+     * including its own ("door and frame, including decoration"), passes.
+     */
+    private static function tradeProblem(string $source, Trade $trade): ?string
+    {
+        $text = self::normalise($source);
+        $said = static function (Trade $t) use ($text): ?string {
+            foreach ($t->keywords() as $keyword) {
+                if (preg_match('~\b(?:'.$keyword.')~u', $text, $m) === 1) {
+                    return $m[0];
+                }
+            }
+
+            return null;
+        };
+
+        if ($said($trade) !== null) {
+            return null;
+        }
+
+        $others = [];
+        foreach (Trade::cases() as $other) {
+            if ($other !== $trade && ($word = $said($other)) !== null) {
+                $others[] = "{$other->value} (\"{$word}\")";
+            }
+        }
+
+        return $others === [] ? null
+            : "trade {$trade->value} is not supported by source_text, which reads as ".implode(' or ', $others).'; correct the trade or explain it in warnings.';
     }
 
     /**
