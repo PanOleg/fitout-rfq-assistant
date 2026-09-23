@@ -2,9 +2,7 @@
 
 declare(strict_types=1);
 
-use Illuminate\Foundation\Inspiring;
-use Illuminate\Support\Facades\Artisan;
+use Illuminate\Support\Facades\Schedule;
 
-Artisan::command('inspire', function () {
-    $this->comment(Inspiring::quote());
-})->purpose('Display an inspiring quote');
+// Moves on tenders whose jobs were lost (killed worker, flushed queue); see RecoverStuckTenders.
+Schedule::command('rfq:recover-stuck')->everyTenMinutes()->withoutOverlapping();
