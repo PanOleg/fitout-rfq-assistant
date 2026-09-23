@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Tests\Unit\Extraction;
 
+use FitOut\Domain\TradeVocabulary;
 use FitOut\Evals\EvalCase;
 use FitOut\Extraction\GroundingValidator;
 use FitOut\Ingestion\Local\LocalDocumentReader;
@@ -181,6 +182,19 @@ final class GroundingValidatorTest extends TestCase
             ['description has numbers the document does not (600); describe only what the line says.'],
             (new GroundingValidator)->problems($this->item(['description' => 'Carpet tiles, 600x600'] + $item), self::DOCUMENT),
         );
+    }
+
+    #[Test]
+    public function another_market_is_another_vocabulary_file_not_another_validator(): void
+    {
+        $file = sys_get_temp_dir().'/'.uniqid('de-DE-', true).'.php';
+        file_put_contents($file, "<?php return ['trades' => ['flooring' => ['teppich\\w*'], 'ceilings' => ['decke\\w*']], 'locations' => ['im', 'zum']];");
+        $validator = new GroundingValidator(TradeVocabulary::load($file));
+        $source = 'Teppichfliesen im Großraumbüro, 640 m2';
+
+        $this->assertSame([], $validator->problems($this->item(['trade' => 'flooring', 'quantity' => 640, 'source_text' => $source]), $source));
+        $this->assertStringContainsString('reads as flooring', $validator->problems($this->item(['trade' => 'ceilings', 'quantity' => 640, 'source_text' => $source]), $source)[0]);
+        unlink($file);
     }
 
     /**

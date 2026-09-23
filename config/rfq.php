@@ -37,6 +37,10 @@ return [
         'drafts_dir' => env('RFQ_EVAL_DRAFTS_DIR', base_path('evals/drafts')),
     ],
 
+    // Which trade vocabulary the trade check reads quotes with: a bundled name
+    // (src/Domain/Vocabulary/NAME.php) or a path to a file of the same shape.
+    'vocabulary' => env('RFQ_VOCABULARY', 'en-GB'),
+
     'bidders_per_package' => 3,
 
     'regions' => ['london', 'south-east', 'midlands', 'north-west', 'scotland'],

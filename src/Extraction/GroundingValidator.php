@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace FitOut\Extraction;
 
 use FitOut\Domain\Trade;
+use FitOut\Domain\TradeVocabulary;
 use FitOut\Domain\Unit;
 
 /**
@@ -29,13 +30,20 @@ use FitOut\Domain\Unit;
  *   is otherwise the model's; the quote next to it on the review screen is the
  *   evidence a person reads.
  */
-final class GroundingValidator
+final readonly class GroundingValidator
 {
     /**
      * Bump when a check changes. It is part of the extraction cache key, so a
      * result accepted under weaker checks is never replayed as clean.
      */
-    public const VERSION = '6';
+    public const VERSION = '7';
+
+    private TradeVocabulary $vocabulary;
+
+    public function __construct(?TradeVocabulary $vocabulary = null)
+    {
+        $this->vocabulary = $vocabulary ?? TradeVocabulary::load();
+    }
 
     /**
      * @param  array<string, mixed>  $item
@@ -76,7 +84,7 @@ final class GroundingValidator
         $trade = Trade::tryFrom(is_string($item['trade'] ?? null) ? $item['trade'] : '');
         if ($trade === null) {
             $problems[] = 'trade is not one of the known trades.';
-        } elseif ($source !== '' && ($problem = self::tradeProblem($source, $trade)) !== null) {
+        } elseif ($source !== '' && ($problem = $this->tradeProblem($source, $trade)) !== null) {
             $problems[] = $problem;
         }
         if (Unit::tryFrom(is_string($item['unit'] ?? null) ? $item['unit'] : '') === null) {
@@ -139,15 +147,17 @@ final class GroundingValidator
      * FINISHES is flooring, so a word right after "to", "in", "at"… does not
      * count as another trade's word.
      */
-    private static function tradeProblem(string $source, Trade $trade): ?string
+    private function tradeProblem(string $source, Trade $trade): ?string
     {
-        $text = (string) preg_replace(
-            '~\b(?:to|in|at|within|serving)\s+(?:(?:the|all|new|existing)\s+)*[\p{L}-]+(?:\s+(?:and|&)\s+[\p{L}-]+)?~u',
+        $locations = implode('|', array_map(static fn (string $w): string => preg_quote($w, '~'), $this->vocabulary->locations));
+        $text = $locations === '' ? self::normalise($source) : (string) preg_replace(
+            '~\b(?:'.$locations.')\s+(?:(?:the|all|new|existing)\s+)*[\p{L}-]+(?:\s+(?:and|&)\s+[\p{L}-]+)?~u',
             ' ',
             self::normalise($source),
         );
-        $said = static function (Trade $t) use ($text): ?string {
-            foreach ($t->keywords() as $keyword) {
+        $vocabulary = $this->vocabulary;
+        $said = static function (Trade $t) use ($text, $vocabulary): ?string {
+            foreach ($vocabulary->words($t) as $keyword) {
                 if (preg_match('~\b(?:'.$keyword.')\b~u', $text, $m) === 1) {
                     return $m[0];
                 }
