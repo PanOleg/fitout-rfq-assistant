@@ -28,7 +28,10 @@ final class ExtractTender implements ShouldBeUnique, ShouldQueue
 {
     use Queueable;
 
-    public function __construct(public readonly string $tenderId) {}
+    public function __construct(public readonly string $tenderId)
+    {
+        $this->onQueue(config('rfq.queue.extraction'));
+    }
 
     public function uniqueId(): string
     {
@@ -59,6 +62,7 @@ final class ExtractTender implements ShouldBeUnique, ShouldQueue
         $tenderId = $tender->id;
         $batch = Bus::batch($jobs)
             ->name("tender {$tenderId}")
+            ->onQueue(config('rfq.queue.extraction'))
             ->allowFailures()
             ->finally(static function (Batch $batch) use ($tenderId): void {
                 AssembleTender::dispatch($tenderId);

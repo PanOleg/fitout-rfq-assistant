@@ -23,6 +23,14 @@ return [
     'queue' => [
         'piece_timeout' => (int) env('RFQ_PIECE_TIMEOUT', 300),  // one piece: up to 3 model calls, halving on overflow
         'read_timeout' => (int) env('RFQ_READ_TIMEOUT', 900),    // OCR of a long scan
+        // Separate queues, so a batch of scans cannot occupy every extraction worker.
+        'reading' => env('RFQ_QUEUE_READING', 'reading'),
+        'extraction' => env('RFQ_QUEUE_EXTRACTION', 'extraction'),
+        // Model calls started per minute across all workers; above it, pieces wait rather than
+        // fail on 429. Set from the organisation's rate limit.
+        'llm_per_minute' => (int) env('RFQ_LLM_PER_MINUTE', 40),
+        // How long a piece keeps retrying transient errors (429, overload) before it fails.
+        'piece_retry_minutes' => (int) env('RFQ_PIECE_RETRY_MINUTES', 60),
     ],
 
     'evals' => [

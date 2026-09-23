@@ -143,7 +143,7 @@ final class TenderApiTest extends TestCase
             ->assertJsonPath('data.status', 'reading')
             ->assertJsonPath('data.packages', null);
 
-        Queue::assertPushed(ReadTenderDocument::class);
+        Queue::assertPushedOn('reading', ReadTenderDocument::class);
         Queue::assertNotPushed(ExtractTender::class);
     }
 

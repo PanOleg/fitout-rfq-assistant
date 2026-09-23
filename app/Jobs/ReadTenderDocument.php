@@ -32,6 +32,7 @@ final class ReadTenderDocument implements ShouldBeUnique, ShouldQueue
     public function __construct(public readonly string $tenderId)
     {
         $this->timeout = (int) config('rfq.queue.read_timeout');
+        $this->onQueue(config('rfq.queue.reading'));
     }
 
     public function uniqueId(): string

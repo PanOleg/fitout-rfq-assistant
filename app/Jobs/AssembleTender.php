@@ -23,7 +23,10 @@ final class AssembleTender implements ShouldQueue
 
     public int $tries = 3;
 
-    public function __construct(public readonly string $tenderId) {}
+    public function __construct(public readonly string $tenderId)
+    {
+        $this->onQueue(config('rfq.queue.extraction'));
+    }
 
     public function handle(): void
     {

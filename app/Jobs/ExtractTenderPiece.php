@@ -13,6 +13,7 @@ use FitOut\Llm\ModelPricing;
 use Illuminate\Bus\Batchable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Queue\Queueable;
+use Illuminate\Queue\Middleware\RateLimited;
 use Throwable;
 
 /**
@@ -26,16 +27,35 @@ final class ExtractTenderPiece implements ShouldQueue
     use Batchable;
     use Queueable;
 
-    public int $tries = 4;
+    /** Real exceptions allowed before the piece fails; waiting on the rate limiter does not count. */
+    public int $maxExceptions = 6;
 
     /** @var list<int> */
-    public array $backoff = [10, 30, 90];
+    public array $backoff = [15, 60, 180, 300];
 
     public int $timeout;
 
     public function __construct(public readonly string $tenderId, public readonly int $position)
     {
         $this->timeout = (int) config('rfq.queue.piece_timeout');
+        $this->onQueue(config('rfq.queue.extraction'));
+    }
+
+    /**
+     * Pieces of every tender share one limiter, so a 200-piece bill queues its
+     * model calls instead of firing them at once and failing on 429.
+     *
+     * @return list<object>
+     */
+    public function middleware(): array
+    {
+        return [new RateLimited('llm')];
+    }
+
+    /** Transient errors are retried with backoff for this long, however many tries that takes. */
+    public function retryUntil(): \DateTimeInterface
+    {
+        return now()->addMinutes((int) config('rfq.queue.piece_retry_minutes'));
     }
 
     public function handle(ChunkedLineItemExtractor $extractor): void

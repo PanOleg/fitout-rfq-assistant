@@ -16,8 +16,10 @@ use FitOut\Llm\Anthropic\AnthropicLlmClient;
 use FitOut\Llm\LlmClient;
 use FitOut\Suppliers\SupplierDirectory;
 use FitOut\Suppliers\SupplierMatcher;
+use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Contracts\Foundation\Application;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\ServiceProvider;
 
 /** Composition root: the only place that knows which adapter backs which port. */
@@ -57,5 +59,10 @@ class AppServiceProvider extends ServiceProvider
             $app->make(SupplierDirectory::class),
             config('rfq.bidders_per_package'),
         ));
+    }
+
+    public function boot(): void
+    {
+        RateLimiter::for('llm', static fn (): Limit => Limit::perMinute(max(1, (int) config('rfq.queue.llm_per_minute'))));
     }
 }
