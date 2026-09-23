@@ -48,6 +48,7 @@ class AppServiceProvider extends ServiceProvider
             pdftoppm: config('rfq.ingestion.pdftoppm'),
             tesseract: config('rfq.ingestion.tesseract'),
             maxPages: config('rfq.ingestion.max_pages'),
+            maxChars: config('rfq.max_document_chars'),
         ));
 
         $this->app->singleton(SupplierDirectory::class, EloquentSupplierDirectory::class);

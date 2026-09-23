@@ -34,7 +34,9 @@ return [
 
     'regions' => ['london', 'south-east', 'midlands', 'north-west', 'scotland'],
 
-    'max_document_chars' => 200_000,
+    // Each piece is its own job, so size is a cost question, not a timeout one: about 150
+    // pages of dense BoQ. A scan is refused as soon as OCR passes this, not after the last page.
+    'max_document_chars' => 1_000_000,
 
     'max_upload_kb' => 20_480,
 
