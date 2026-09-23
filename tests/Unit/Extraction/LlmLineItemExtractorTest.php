@@ -91,6 +91,38 @@ final class LlmLineItemExtractorTest extends TestCase
     }
 
     #[Test]
+    public function two_items_sharing_one_quote_are_both_kept(): void
+    {
+        $document = "- WCs: replace 4 nr pans and 4 nr basins in the gents, like for like\n";
+        $quote = 'replace 4 nr pans and 4 nr basins in the gents, like for like';
+        $pans = ['trade' => 'plumbing', 'description' => 'Replace WC pans', 'quantity' => 4, 'unit' => 'nr', 'spec_reference' => null, 'source_text' => $quote];
+        $basins = ['description' => 'Replace basins'] + $pans;
+
+        $result = (new LlmLineItemExtractor(new ScriptedLlmClient(['items' => [$pans, $basins], 'warnings' => []])))->extract($document);
+
+        $this->assertSame(['Replace WC pans', 'Replace basins'], array_map(static fn ($i): string => $i->description, $result->items));
+    }
+
+    #[Test]
+    public function a_repair_that_restates_one_of_two_items_sharing_a_quote_keeps_the_other(): void
+    {
+        $document = "- WCs: replace 4 nr pans and 4 nr basins in the gents, like for like\nSuspended ceiling 600x600 grid, 710 m2\n";
+        $quote = 'replace 4 nr pans and 4 nr basins in the gents, like for like';
+        $pans = ['trade' => 'plumbing', 'description' => 'Replace WC pans', 'quantity' => 4, 'unit' => 'nr', 'spec_reference' => null, 'source_text' => $quote];
+        $basins = ['description' => 'Replace basins'] + $pans;
+        $invented = ['quantity' => 700, 'source_text' => 'Suspended ceiling, 700 m2'] + self::CEILING;
+        $llm = new ScriptedLlmClient(
+            ['items' => [$pans, $basins, $invented], 'warnings' => []],
+            // The repair answer returns the fixed ceiling and only one of the two.
+            ['items' => [$basins, self::CEILING], 'warnings' => []],
+        );
+
+        $result = (new LlmLineItemExtractor($llm))->extract($document);
+
+        $this->assertEqualsCanonicalizing(['Replace WC pans', 'Replace basins', 'Grid ceiling 600x600'], array_map(static fn ($i): string => $i->description, $result->items));
+    }
+
+    #[Test]
     public function items_still_failing_after_the_last_repair_are_reported_not_hidden(): void
     {
         $invented = ['quantity' => 700] + self::CEILING;
