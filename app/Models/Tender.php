@@ -29,6 +29,7 @@ use Illuminate\Support\Carbon;
  * @property ?string $failure
  * @property ?array{items: list<array{trade: string, description: string, quantity: float|int, unit: string, spec_reference?: ?string, source_text: string}>, notes?: string} $review
  * @property ?Carbon $reviewed_at
+ * @property int $review_version
  * @property Carbon $created_at
  */
 class Tender extends Model
@@ -48,6 +49,12 @@ class Tender extends Model
             'review' => 'array',
             'reviewed_at' => 'datetime',
         ];
+    }
+
+    /** @return HasMany<TenderReview, $this> newest first */
+    public function reviews(): HasMany
+    {
+        return $this->hasMany(TenderReview::class)->orderByDesc('version');
     }
 
     /** @return HasMany<TenderPiece, $this> */

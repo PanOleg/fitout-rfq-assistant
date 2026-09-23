@@ -6,6 +6,7 @@ namespace App\Http\Controllers;
 
 use App\Evals\EvalCaseDrafter;
 use App\Models\Tender;
+use App\Models\TenderReview;
 use App\Models\TenderStatus;
 use FitOut\Domain\LineItem;
 use FitOut\Domain\Trade;
@@ -14,6 +15,7 @@ use FitOut\Extraction\GroundingValidator;
 use FitOut\Extraction\Violation;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
@@ -60,6 +62,8 @@ final class ReviewController
 
         return view('review', [
             'tender' => $tender,
+            'history' => $tender->reviews()->get(),
+            'reviewer' => request()->getUser(),
             'rows' => $rows,
             'warnings' => [
                 ...($tender->read_by === 'ocr' ? ['Read by OCR from a scan: check quantities against the original.'] : []),
@@ -85,6 +89,9 @@ final class ReviewController
             'rows.*.spec_reference' => ['exclude_unless:rows.*.decision,keep', 'nullable', 'string', 'max:50'],
             'rows.*.source_text' => ['exclude_unless:rows.*.decision,keep', 'required', 'string'],
             'notes' => ['nullable', 'string', 'max:2000'],
+            // The access token is shared, so the name is how a decision gets an author.
+            'reviewer' => ['required', 'string', 'max:100'],
+            'version' => ['required', 'integer', 'min:0'],
         ]);
 
         // The rules above guarantee every field of a kept row; a dropped row carries only its decision.
@@ -117,9 +124,34 @@ final class ReviewController
             };
         }
 
-        $tender->update(['review' => ['items' => $items, 'notes' => (string) ($data['notes'] ?? '')], 'reviewed_at' => now()]);
-
         $summary = sprintf('%d kept, %d dropped, %d recovered from rejected, %d added.', $changes['kept'], $changes['dropped'], $changes['recovered'], $changes['added']);
+        $notes = (string) ($data['notes'] ?? '');
+
+        // Optimistic lock: the form carries the version it was built from. If someone saved
+        // since, this save is refused instead of silently replacing their decisions.
+        $saved = DB::transaction(function () use ($tender, $data, $items, $notes, $summary): ?int {
+            $current = Tender::query()->whereKey($tender->id)->lockForUpdate()->value('review_version');
+            if ((int) $current !== (int) $data['version']) {
+                return null;
+            }
+            $version = (int) $current + 1;
+            TenderReview::query()->create([
+                'tender_id' => $tender->id, 'version' => $version, 'reviewer' => $data['reviewer'],
+                'items' => $items, 'notes' => $notes === '' ? null : $notes, 'summary' => $summary, 'created_at' => now(),
+            ]);
+            $tender->update(['review' => ['items' => $items, 'notes' => $notes], 'reviewed_at' => now(), 'review_version' => $version]);
+
+            return $version;
+        });
+
+        if ($saved === null) {
+            $latest = $tender->reviews()->first();
+
+            return redirect()->route('tenders.review', $tender)->withInput()->withErrors([
+                'version' => sprintf('Not saved: %s saved a newer review (version %d) at %s. Reload to see it, then apply your changes again.', $latest->reviewer ?? 'someone', $latest->version ?? 0, $latest?->created_at->toDayDateTimeString() ?? 'just now'),
+            ]);
+        }
+
         $draft = (new EvalCaseDrafter((string) config('rfq.evals.drafts_dir')))->draft(
             $tender,
             'review-'.substr(strtolower($tender->id), -8),
@@ -127,6 +159,6 @@ final class ReviewController
             $summary.(($data['notes'] ?? '') === '' ? '' : "\n\n".$data['notes']),
         );
 
-        return redirect()->route('tenders.review', $tender)->with('status', "Review saved: {$summary} Eval case draft {$draft} written — anonymise it before moving it to evals/cases.");
+        return redirect()->route('tenders.review', $tender)->with('status', "Review version {$saved} saved by {$data['reviewer']}: {$summary} Eval case draft {$draft} written — anonymise it before moving it to evals/cases.");
     }
 }

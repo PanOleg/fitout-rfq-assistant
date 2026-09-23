@@ -58,6 +58,8 @@ final class TenderResource extends JsonResource
                 'duration_ms' => $result->durationMs,
             ],
             'review' => $this->reviewed_at === null ? null : [
+                'version' => $this->review_version,
+                'reviewer' => $this->resource->reviews()->value('reviewer'),
                 'reviewed_at' => $this->reviewed_at->toIso8601String(),
                 'items' => count($this->review['items'] ?? []),
             ],
