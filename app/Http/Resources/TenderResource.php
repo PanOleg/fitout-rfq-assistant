@@ -35,6 +35,7 @@ final class TenderResource extends JsonResource
                 'done' => $this->resource->pieces()->where('status', TenderPiece::DONE)->count(),
             ] : null,
             'failure' => $this->failure,
+            'packages_from' => $result === null ? null : ($this->reviewed_at === null ? 'extraction (not reviewed)' : 'review'),
             'packages' => $result === null ? null : array_map(static fn (WorkPackage $p): array => [
                 'trade' => $p->trade->value,
                 'label' => $p->trade->label(),

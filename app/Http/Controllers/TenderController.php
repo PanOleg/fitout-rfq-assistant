@@ -94,6 +94,12 @@ final class TenderController
             WorkPackage::groupByTrade($tender->finalItems()),
         );
 
-        return response()->json(['data' => array_map(static fn (RfqDraft $d): array => $d->toArray(), $drafts)]);
+        return response()->json([
+            'data' => array_map(static fn (RfqDraft $d): array => $d->toArray(), $drafts),
+            // Drafts before review are built from what the model extracted, unchecked by a person.
+            'meta' => $tender->reviewed_at === null
+                ? ['reviewed' => false, 'warning' => 'Not reviewed: these drafts use the extracted items as they are. Review the tender before sending them.', 'review' => route('tenders.review', $tender)]
+                : ['reviewed' => true, 'reviewed_at' => $tender->reviewed_at->toIso8601String()],
+        ]);
     }
 }

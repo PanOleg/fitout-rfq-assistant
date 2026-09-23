@@ -82,6 +82,8 @@ final class TenderApiTest extends TestCase
         $rfqs = $this->getJson("/api/tenders/{$id}/rfqs")->assertOk()->json('data');
 
         $this->assertSame(['partitions', 'flooring'], array_column($rfqs, 'trade'));
+        $this->getJson("/api/tenders/{$id}/rfqs")->assertJsonPath('meta.reviewed', false)->assertJsonPath('meta.warning', 'Not reviewed: these drafts use the extracted items as they are. Review the tender before sending them.');
+        $this->getJson("/api/tenders/{$id}")->assertJsonPath('data.packages_from', 'extraction (not reviewed)');
         $this->assertSame('Fairway Flooring', $rfqs[1]['recipients'][0]['name']);
         $this->assertStringContainsString('640 m2', $rfqs[1]['body']);
     }
