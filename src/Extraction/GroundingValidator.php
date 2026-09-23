@@ -16,6 +16,18 @@ use FitOut\Domain\Unit;
  * dimension read as an area — and an item filed under a trade its own words
  * contradict. All are cheap to detect deterministically, so they are
  * detected here rather than asked about in a prompt.
+ *
+ * Every field the model fills is checked here, as far as it can be:
+ * - source_text: a verbatim quote from the document;
+ * - quantity, unit: the number the quote states, with that unit;
+ * - trade: not contradicted by the quote's own words;
+ * - spec_reference: written in the document, on or just before the quoted line;
+ * - description: not a quote by design — the schema asks for a short normalised
+ *   description ("Carpet tiles, 500x500"), so it cannot be matched verbatim. What
+ *   can be checked is checked: it is not empty, and every number in it is written
+ *   in the document, so it cannot carry an invented size or rating. Its wording
+ *   is otherwise the model's; the quote next to it on the review screen is the
+ *   evidence a person reads.
  */
 final class GroundingValidator
 {
@@ -23,7 +35,7 @@ final class GroundingValidator
      * Bump when a check changes. It is part of the extraction cache key, so a
      * result accepted under weaker checks is never replayed as clean.
      */
-    public const VERSION = '5';
+    public const VERSION = '6';
 
     /**
      * @param  array<string, mixed>  $item
@@ -53,6 +65,13 @@ final class GroundingValidator
 
         if (! is_string($item['description'] ?? null) || trim($item['description']) === '') {
             $problems[] = 'description is empty.';
+        } elseif (($invented = self::numbersNotIn($item['description'], $document)) !== []) {
+            $problems[] = 'description has numbers the document does not ('.implode(', ', $invented).'); describe only what the line says.';
+        }
+
+        $reference = $item['spec_reference'] ?? null;
+        if ($reference !== null && (! is_string($reference) || ! self::isNear($reference, $source, $document))) {
+            $problems[] = 'spec_reference is not written on or just before the quoted line; use the line\'s own reference or null.';
         }
         $trade = Trade::tryFrom(is_string($item['trade'] ?? null) ? $item['trade'] : '');
         if ($trade === null) {
@@ -71,6 +90,35 @@ final class GroundingValidator
     public static function isQuoted(string $quote, string $document): bool
     {
         return trim($quote) !== '' && str_contains(self::normalise($document), self::normalise($quote));
+    }
+
+    /** Whether $reference is written in the document within the quote or in the 200 characters before it. */
+    private static function isNear(string $reference, string $quote, string $document): bool
+    {
+        $reference = self::normalise($reference);
+        $text = self::normalise($document);
+        $at = $quote === '' ? false : mb_strpos($text, self::normalise($quote));
+        if ($reference === '' || $at === false) {
+            return false;
+        }
+        $from = max(0, $at - 200);
+
+        return str_contains(mb_substr($text, $from, $at - $from + mb_strlen(self::normalise($quote))), $reference);
+    }
+
+    /**
+     * Numbers in $text that the document never writes. "m2" and "FD30" are not
+     * numbers here (a digit glued to letters before it is part of a word).
+     *
+     * @return list<string>
+     */
+    private static function numbersNotIn(string $text, string $document): array
+    {
+        preg_match_all('/(?<![\p{L}\d.,])\d+(?:[.,]\d+)*/u', $text, $m);
+        preg_match_all('/\d+(?:[.,]\d+)*/u', $document, $d);
+        $known = array_flip(array_map(static fn (string $n): string => str_replace(',', '', $n), $d[0]));
+
+        return array_values(array_unique(array_filter($m[0], static fn (string $n): bool => ! isset($known[str_replace(',', '', $n)]))));
     }
 
     private static function normalise(string $text): string
