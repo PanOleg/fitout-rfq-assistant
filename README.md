@@ -224,13 +224,16 @@ one complete run per candidate before the API credit ran out
 | model | effort | cases passed | precision | recall | cost / case | cost, 30 KB case | latency / case |
 |---|---|---|---|---|---|---|---|
 | claude-opus-5 | medium | 9/9 | 1.000 | 1.000 | $0.120 | $0.63 | 35.0 s |
-| claude-sonnet-5 | low | 8/9 | 1.000 | 0.997 | $0.063 | $0.41 | 23.9 s |
+| claude-sonnet-5 | low | 8/9 ¹ | 1.000 | 0.997 ¹ | $0.063 | $0.41 | 23.9 s |
 
-The large cases separate the settings a little: Sonnet 5 @ low missed "4 nr basins" in case 03
-in both runs it reached — a repeatable blind spot, not noise. On the 30 KB bill it is only 1.5×
-cheaper, not 3×. The rule in `model-choice.md` needs three runs per setting, so the default
-stays Opus 5 @ medium; the rule also gained a proposed fifth condition (no item missed in more
-than one run), because pooled recall of 0.997 hid exactly this.
+¹ **Not a model result.** Sonnet's one "miss" (4 nr basins, case 03) was a bug in our repair
+loop, since fixed: it kept items keyed by quote, and Sonnet quoted one line for two items.
+Sonnet most likely had 9/9; this has not been re-measured.
+
+So on nine cases, including the 30 KB bill, the two candidates are not yet told apart on
+quality. On cost, Sonnet 5 @ low is about 2× cheaper overall and 1.5× on the large bill. The
+rule in `model-choice.md` needs three runs per setting; the default stays Opus 5 @ medium
+until they exist.
 
 ## What breaks first
 
