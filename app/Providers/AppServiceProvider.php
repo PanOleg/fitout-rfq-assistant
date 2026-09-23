@@ -31,6 +31,7 @@ class AppServiceProvider extends ServiceProvider
             new Client(apiKey: config('services.anthropic.key')),
             config('rfq.llm.model'),
             config('rfq.llm.effort'),
+            config('rfq.llm.refusal_fallback'),
         ));
 
         // One piece at a time, cached per piece: Chunked(Caching(Llm)). The queue runs each

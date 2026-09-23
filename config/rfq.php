@@ -13,6 +13,9 @@ return [
         // Re-check with `php artisan rfq:eval` before changing it.
         'effort' => env('RFQ_LLM_EFFORT', 'medium'),
         'max_repairs' => 2,
+        // Server-side fallback when the model refuses. A beta API feature: off removes every beta
+        // header from the request, and a refusal then fails the piece.
+        'refusal_fallback' => (bool) env('RFQ_LLM_REFUSAL_FALLBACK', true),
         // Documents longer than this are read in pieces split between paragraphs.
         // About 5k input tokens: a piece of dense BoQ stays well inside one answer.
         'chunk_chars' => 20_000,

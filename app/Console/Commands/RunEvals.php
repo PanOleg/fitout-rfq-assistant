@@ -121,7 +121,7 @@ final class RunEvals extends Command
     private function evaluate(Scorer $scorer, string $model, string $effort, array $cases): RunSummary
     {
         $this->info("{$model} @ {$effort}");
-        $llm = new LlmLineItemExtractor(new AnthropicLlmClient(new Client(apiKey: config('services.anthropic.key')), $model, $effort));
+        $llm = new LlmLineItemExtractor(new AnthropicLlmClient(new Client(apiKey: config('services.anthropic.key')), $model, $effort, (bool) config('rfq.llm.refusal_fallback')));
 
         $scores = [];
         foreach ($cases as $case) {

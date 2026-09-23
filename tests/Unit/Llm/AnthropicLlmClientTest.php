@@ -68,6 +68,19 @@ final class AnthropicLlmClientTest extends TestCase
     }
 
     #[Test]
+    public function the_refusal_fallback_beta_can_be_turned_off(): void
+    {
+        $this->clientReturning(new Response(200, ['content-type' => 'application/json'], $this->message('{"items":[],"warnings":[]}', 'end_turn')))->structured($this->request());
+        $this->clientReturning(new Response(200, ['content-type' => 'application/json'], $this->message('{"items":[],"warnings":[]}', 'end_turn')), refusalFallback: false)->structured($this->request());
+
+        [$with, $without] = array_map(static fn (array $t) => $t['request'], $this->sent);
+        $this->assertStringContainsString('server-side-fallback', $with->getHeaderLine('anthropic-beta'));
+        $this->assertArrayHasKey('fallbacks', json_decode((string) $with->getBody(), true));
+        $this->assertSame('', $without->getHeaderLine('anthropic-beta'), 'no beta header at all');
+        $this->assertArrayNotHasKey('fallbacks', json_decode((string) $without->getBody(), true));
+    }
+
+    #[Test]
     public function rate_limits_and_overload_become_retryable(): void
     {
         $llm = $this->clientReturning(new Response(429, ['content-type' => 'application/json'], '{"type":"error","error":{"type":"rate_limit_error","message":"slow down"}}'));
@@ -85,14 +98,14 @@ final class AnthropicLlmClientTest extends TestCase
         );
     }
 
-    private function clientReturning(Response $response): AnthropicLlmClient
+    private function clientReturning(Response $response, bool $refusalFallback = true): AnthropicLlmClient
     {
         $stack = HandlerStack::create(new MockHandler([$response]));
         $stack->push(Middleware::history($this->sent));
 
         $sdk = new Client(apiKey: 'test-key', requestOptions: ['transporter' => new Guzzle(['handler' => $stack]), 'maxRetries' => 0]);
 
-        return new AnthropicLlmClient($sdk, 'claude-opus-5', 'medium');
+        return new AnthropicLlmClient($sdk, 'claude-opus-5', 'medium', $refusalFallback);
     }
 
     private function message(string $text, string $stopReason): string
