@@ -15,6 +15,7 @@ use FitOut\Extraction\GroundingValidator;
 use FitOut\Extraction\Violation;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
@@ -63,7 +64,7 @@ final class ReviewController
         return view('review', [
             'tender' => $tender,
             'history' => $tender->reviews()->get(),
-            'reviewer' => request()->getUser(),
+            'reviewer' => Auth::user()?->name,
             'rows' => $rows,
             'warnings' => [
                 ...($tender->read_by === 'ocr' ? ['Read by OCR from a scan: check quantities against the original.'] : []),
@@ -89,8 +90,9 @@ final class ReviewController
             'rows.*.spec_reference' => ['exclude_unless:rows.*.decision,keep', 'nullable', 'string', 'max:50'],
             'rows.*.source_text' => ['exclude_unless:rows.*.decision,keep', 'required', 'string'],
             'notes' => ['nullable', 'string', 'max:2000'],
-            // The access token is shared, so the name is how a decision gets an author.
-            'reviewer' => ['required', 'string', 'max:100'],
+            // The token identifies the reviewer; a typed name is only asked for when the
+            // service runs open (no tokens issued yet, outside production).
+            'reviewer' => [Auth::check() ? 'nullable' : 'required', 'string', 'max:100'],
             'version' => ['required', 'integer', 'min:0'],
         ]);
 
@@ -129,14 +131,15 @@ final class ReviewController
 
         // Optimistic lock: the form carries the version it was built from. If someone saved
         // since, this save is refused instead of silently replacing their decisions.
-        $saved = DB::transaction(function () use ($tender, $data, $items, $notes, $summary): ?int {
+        $reviewer = Auth::user()->name ?? (string) $data['reviewer'];
+        $saved = DB::transaction(function () use ($tender, $data, $items, $notes, $summary, $reviewer): ?int {
             $current = Tender::query()->whereKey($tender->id)->lockForUpdate()->value('review_version');
             if ((int) $current !== (int) $data['version']) {
                 return null;
             }
             $version = (int) $current + 1;
             TenderReview::query()->create([
-                'tender_id' => $tender->id, 'version' => $version, 'reviewer' => $data['reviewer'],
+                'tender_id' => $tender->id, 'version' => $version, 'reviewer' => $reviewer, 'user_id' => Auth::id(),
                 'items' => $items, 'notes' => $notes === '' ? null : $notes, 'summary' => $summary, 'created_at' => now(),
             ]);
             $tender->update(['review' => ['items' => $items, 'notes' => $notes], 'reviewed_at' => now(), 'review_version' => $version]);
@@ -159,6 +162,6 @@ final class ReviewController
             $summary.(($data['notes'] ?? '') === '' ? '' : "\n\n".$data['notes']),
         );
 
-        return redirect()->route('tenders.review', $tender)->with('status', "Review version {$saved} saved by {$data['reviewer']}: {$summary} Eval case draft {$draft} written — anonymise it before moving it to evals/cases.");
+        return redirect()->route('tenders.review', $tender)->with('status', "Review version {$saved} saved by {$reviewer}: {$summary} Eval case draft {$draft} written — anonymise it before moving it to evals/cases.");
     }
 }

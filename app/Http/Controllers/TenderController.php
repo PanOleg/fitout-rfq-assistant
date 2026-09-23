@@ -18,6 +18,7 @@ use FitOut\Suppliers\SupplierMatcher;
 use Illuminate\Database\UniqueConstraintViolationException;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Str;
 
 final class TenderController
@@ -57,6 +58,7 @@ final class TenderController
             $tender = Tender::query()->create([
                 ...$fields,
                 'idempotency_key' => $key,
+                'created_by' => Auth::id(),
                 'request_fingerprint' => $key === null ? null : $fingerprint,
             ]);
         } catch (UniqueConstraintViolationException) {

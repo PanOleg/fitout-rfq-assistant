@@ -4,37 +4,44 @@ declare(strict_types=1);
 
 namespace App\Http\Middleware;
 
+use App\Models\AccessToken;
 use Closure;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 use Symfony\Component\HttpFoundation\Response;
 
 /**
- * One shared secret for the API (Bearer) and the review screen (HTTP Basic,
- * any user name, the token as password). Enough to keep tenders — client
- * documents — off the open internet; not a user system: there is one key,
- * no tenants and no per-person audit yet.
+ * Personal tokens: the API takes one as a Bearer token, the review screen as
+ * the HTTP Basic password (any user name). The token says who is calling, so
+ * a tender records who created it and a review who decided it — nobody types
+ * a name.
  *
- * With no token configured the app is open outside production and closed in
- * production, so a missing secret fails safe.
+ * Until the first token is issued the service is open outside production, so
+ * a fresh checkout works; in production it is closed until then.
  */
 final class RequireAccessToken
 {
     public function handle(Request $request, Closure $next): Response
     {
-        $token = config('rfq.access_token');
+        $given = $request->bearerToken() ?? $request->getPassword();
+        $token = is_string($given) && $given !== '' ? AccessToken::findActive($given) : null;
 
-        if (! is_string($token) || $token === '') {
+        if ($token !== null) {
+            Auth::setUser($token->user);
+            if ($token->last_used_at === null || $token->last_used_at->lt(now()->subMinute())) {
+                $token->forceFill(['last_used_at' => now()])->saveQuietly();
+            }
+
+            return $next($request);
+        }
+
+        if (! AccessToken::query()->exists()) {
             return app()->isProduction()
-                ? $this->deny($request, 'RFQ_ACCESS_TOKEN is not set; the service is closed until it is.')
+                ? $this->deny($request, 'No access tokens have been issued; the service is closed until one is (php artisan rfq:issue-token).')
                 : $next($request);
         }
 
-        $given = $request->bearerToken() ?? $request->getPassword();
-        if (! is_string($given) || ! hash_equals($token, $given)) {
-            return $this->deny($request, 'A valid access token is required.');
-        }
-
-        return $next($request);
+        return $this->deny($request, 'A valid access token is required.');
     }
 
     private function deny(Request $request, string $message): Response

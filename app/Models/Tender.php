@@ -15,6 +15,7 @@ use Illuminate\Support\Carbon;
 /**
  * @property string $id
  * @property ?string $idempotency_key
+ * @property ?int $created_by
  * @property ?string $request_fingerprint
  * @property string $name
  * @property string $region

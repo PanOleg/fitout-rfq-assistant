@@ -3,10 +3,6 @@
 declare(strict_types=1);
 
 return [
-    // Shared secret for the API (Bearer) and the review screen (Basic, as password).
-    // Unset: open outside production, closed in production.
-    'access_token' => env('RFQ_ACCESS_TOKEN'),
-
     'llm' => [
         'model' => env('RFQ_LLM_MODEL', 'claude-opus-5'),
         // Extraction is reading, not reasoning: medium holds quality at a lower cost.

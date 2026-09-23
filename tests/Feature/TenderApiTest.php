@@ -6,8 +6,10 @@ namespace Tests\Feature;
 
 use App\Jobs\ExtractTender;
 use App\Jobs\ReadTenderDocument;
+use App\Models\AccessToken;
 use App\Models\Tender;
 use App\Models\TenderPiece;
+use App\Models\User;
 use Database\Seeders\SupplierSeeder;
 use FitOut\Extraction\ExtractionPrompt;
 use FitOut\Ingestion\DocumentReader;
@@ -250,25 +252,48 @@ final class TenderApiTest extends TestCase
     }
 
     #[Test]
-    public function with_a_token_configured_the_api_needs_it(): void
+    public function once_tokens_exist_the_api_needs_one_and_knows_who_called(): void
     {
-        config(['rfq.access_token' => 'secret-token']);
         $this->app->instance(LlmClient::class, new ScriptedLlmClient(self::ANSWER));
+        $ann = User::factory()->create(['name' => 'Ann Estimator']);
+        [, $plain] = AccessToken::issue($ann, 'laptop');
 
         $this->postJson('/api/tenders', $this->payload())->assertUnauthorized();
-        $this->postJson('/api/tenders', $this->payload(), ['Authorization' => 'Bearer wrong'])->assertUnauthorized();
-        $this->postJson('/api/tenders', $this->payload(), ['Authorization' => 'Bearer secret-token'])->assertAccepted();
+        $this->postJson('/api/tenders', $this->payload(), ['Authorization' => 'Bearer rfq_wrong'])->assertUnauthorized();
+        $id = $this->postJson('/api/tenders', $this->payload(), ['Authorization' => "Bearer {$plain}"])->assertAccepted()->json('data.id');
+
+        $this->assertSame($ann->id, Tender::query()->findOrFail($id)->created_by);
     }
 
     #[Test]
-    public function without_a_token_production_is_closed(): void
+    public function a_revoked_token_is_refused(): void
     {
-        config(['rfq.access_token' => null]);
+        [$token, $plain] = AccessToken::issue(User::factory()->create(), 'laptop');
+        $this->artisan('rfq:issue-token', ['email' => 'x', '--revoke' => (string) $token->id])->assertSuccessful();
+
+        $this->getJson('/api/tenders/01none', ['Authorization' => "Bearer {$plain}"])->assertUnauthorized();
+    }
+
+    #[Test]
+    public function with_no_tokens_issued_production_is_closed(): void
+    {
         $this->app->detectEnvironment(static fn (): string => 'production');
 
         $this->postJson('/api/tenders', $this->payload())
             ->assertUnauthorized()
-            ->assertJsonPath('message', 'RFQ_ACCESS_TOKEN is not set; the service is closed until it is.');
+            ->assertJsonPath('message', 'No access tokens have been issued; the service is closed until one is (php artisan rfq:issue-token).');
+    }
+
+    #[Test]
+    public function a_token_is_issued_once_and_stored_only_as_a_hash(): void
+    {
+        $this->artisan('rfq:issue-token', ['email' => 'ann@example.test', '--name' => 'Ann Estimator', '--label' => 'laptop'])
+            ->expectsOutputToContain('Shown once')
+            ->assertSuccessful();
+
+        $token = AccessToken::query()->sole();
+        $this->assertSame('Ann Estimator', $token->user->name);
+        $this->assertSame(64, strlen($token->token_hash));
     }
 
     #[Test]

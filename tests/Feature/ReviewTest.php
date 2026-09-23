@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace Tests\Feature;
 
+use App\Models\AccessToken;
+use App\Models\User;
 use Database\Seeders\SupplierSeeder;
 use FitOut\Llm\LlmClient;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -119,13 +121,18 @@ final class ReviewTest extends TestCase
     }
 
     #[Test]
-    public function the_review_screen_takes_the_token_as_a_basic_password(): void
+    public function the_review_screen_takes_a_token_as_the_basic_password_and_records_its_owner(): void
     {
         $id = $this->extractedTender();
-        config(['rfq.access_token' => 'secret-token']);
+        [, $plain] = AccessToken::issue(User::factory()->create(['name' => 'Bob Surveyor']), 'laptop');
+        $basic = ['Authorization' => 'Basic '.base64_encode('anything:'.$plain)];
 
         $this->get("/tenders/{$id}/review")->assertUnauthorized()->assertHeader('WWW-Authenticate');
-        $this->get("/tenders/{$id}/review", ['Authorization' => 'Basic '.base64_encode('estimator:secret-token')])->assertOk();
+        $this->get("/tenders/{$id}/review", $basic)->assertOk()->assertSee('Saving as Bob Surveyor');
+
+        // No name field is needed or trusted: the token decides who the reviewer is.
+        $this->post("/tenders/{$id}/review", ['rows' => [['origin' => 'accepted', 'decision' => 'drop']], 'reviewer' => 'Someone Else', 'version' => 0], $basic)->assertSessionHasNoErrors();
+        $this->getJson("/api/tenders/{$id}", ['Authorization' => "Bearer {$plain}"])->assertJsonPath('data.review.reviewer', 'Bob Surveyor');
     }
 
     private function extractedTender(): string
