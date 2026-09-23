@@ -38,12 +38,18 @@ quantity that was "tidied up". Every item must quote the source verbatim, and
 - the trade is not contradicted by the quote: an item is flagged when its quote has none of
   its trade's words but has another trade's (`Carpet tiles` filed under ceilings). Words match
   whole (`lightweight` is not lighting, `studio` is not a stud), and where the work goes does
-  not count — `Type B to WCs` is not plumbing.
+  not count — `Type B to WCs` is not plumbing. The words are data per market
+  ([`src/Domain/Vocabulary/en-GB.php`](src/Domain/Vocabulary/en-GB.php), chosen with
+  `RFQ_VOCABULARY`), not code;
+- the spec reference, if any, is written in the document on or just before the quoted line;
+- every number in the description is written in the document, so a description cannot carry
+  an invented size or rating.
 
-The trade check only catches contradictions; a correct trade is not proven, and the
-description is not checked at all. Both are measured by the evals. A unit test runs every
-golden-case expectation through the validator, so tightening a check can't start rejecting
-what the evals call correct.
+Every field the model fills is checked as far as it can be; the validator's header lists each
+field and what is checked. The description cannot be matched verbatim — the schema asks for a
+normalised summary — and a correct trade is not proven, only a contradicted one caught. Both
+are measured by the evals. A unit test runs every golden-case expectation through the
+validator, so tightening a check can't start rejecting what the evals call correct.
 
 **Files in, text through.** PDF, XLSX and CSV are converted to text without the model, by
 the [`DocumentReader`](src/Ingestion/DocumentReader.php) port and its local adapter
@@ -131,14 +137,19 @@ are cached for a day, clean ones for a month.
 
 **Failures are sorted by what can be done about them.** Rate limits, overload and network
 errors raise `LlmUnavailable`, and the piece's job retries with backoff. A refusal fails the
-piece at once (server-side refusal fallback is enabled first); a truncated answer is halved
+piece at once — after the API's server-side refusal fallback, a beta feature that
+`RFQ_LLM_REFUSAL_FALLBACK=false` turns off, leaving requests on GA features only; a truncated
+answer is halved
 or retried once as above, then fails the piece. Uploads are idempotent on the
 `Idempotency-Key` header, including under concurrent requests; the key is bound to the
 request it was first used with, so reusing it for a different document is a 422.
 
-**One shared secret, for now.** `RFQ_ACCESS_TOKEN` guards the API (Bearer) and the review
-screen (HTTP Basic password). Without it the service is open outside production and closed
-in production. It is a gate, not a user system: no tenants, no per-person audit.
+**Personal tokens.** `php artisan rfq:issue-token you@example.com --name="…"` issues a token
+(shown once, stored as a hash; `--revoke` withdraws it). The API takes it as a Bearer token,
+the review screen as the HTTP Basic password. The token says who is calling: tenders record
+who created them, reviews who decided them — nobody types a name. Until the first token is
+issued the service is open outside production and closed in production. Not yet: roles,
+tenants, a UI for managing tokens.
 
 ## Layout
 
@@ -160,9 +171,11 @@ database/data/            fictional demo suppliers (seeded)
 
 ## Running it
 
-Requires PHP 8.4 and Composer. It uses SQLite. For PDFs install poppler, and tesseract for
-scans (`brew install poppler tesseract` / `apt install poppler-utils tesseract-ocr`); without
-them PDFs are read in drawing order and scans are refused.
+Requires PHP 8.4 and Composer. Locally it uses SQLite; production is meant for Postgres, and
+CI runs the whole suite on both (SQLite ignores the row lock the review screen relies on).
+For PDFs install poppler, and tesseract for scans (`brew install poppler tesseract` /
+`apt install poppler-utils tesseract-ocr`); without them PDFs are read in drawing order and
+scans are refused.
 
 ```bash
 composer setup
@@ -172,8 +185,8 @@ composer check          # Pint → PHPStan L8 → Deptrac → PHPUnit (no API ke
 The test suite never calls the API. The Anthropic adapter is tested against canned HTTP
 responses, and everything above it uses a scripted `LlmClient`.
 
-To run against Claude, set `ANTHROPIC_API_KEY` in `.env` (and `RFQ_ACCESS_TOKEN` anywhere
-but your own machine), then:
+To run against Claude, set `ANTHROPIC_API_KEY` in `.env` (and issue a token with
+`rfq:issue-token` anywhere but your own machine), then:
 
 ```bash
 php artisan serve &
@@ -196,6 +209,19 @@ open http://localhost:8000/tenders/{id}/review  # the review screen
 
 php artisan rfq:eval                            # live eval run; about $1 at the default
 php artisan rfq:eval --model=claude-sonnet-5 --effort=low --repeat=3   # mean and worst of 3
+```
+
+In production, `docker-compose.yml` runs the same image as web, extraction worker, reading
+worker, scheduler and Postgres. The reading worker — the one that runs poppler and tesseract
+on untrusted files — has no internet, a read-only file system, the uploads mounted read-only,
+no Linux capabilities and hard memory/CPU/process limits; only the extraction worker can
+reach the Anthropic API.
+
+```bash
+docker compose up -d --build
+docker compose exec app php artisan migrate --force
+docker compose exec app php artisan db:seed --class=SupplierSeeder --force
+docker compose exec app php artisan rfq:issue-token you@example.com --name="Your Name"
 ```
 
 ## Measured results
@@ -259,8 +285,9 @@ done about it and what is left.
    ordinary sentence case without numbers gets no heading context.
 3. **Trade.** Contradictions are caught; a plausible wrong trade is not ("door and frame,
    including decoration" as decoration passes, because decoration's word is there). The
-   keyword lists will also meet trade vocabulary they do not know — unknown words pass, so
-   that errs towards missing a contradiction, not towards rejecting correct items.
+   vocabulary will meet words it does not know — unknown words pass, so it errs towards
+   missing a contradiction. Another market is another vocabulary file, but other parts are
+   still English-specific: unit aliases, heading shapes and the prompt itself.
 4. **PDF layout.** Tables are read by position, which fixes column-by-column drawing. Left:
    two-column prose (some specifications) is placed side by side on one line, and wrapped
    cells can still split a description from its quantity.
@@ -272,9 +299,10 @@ done about it and what is left.
    templates the checks were tuned on. Nothing in the repo is an independent source of truth.
    The review screen and `rfq:draft-case` turn real tenders, reviewed by estimators, into
    cases; until some exist, a perfect score says little.
-7. **Parsers are not sandboxed.** poppler and tesseract now run in a worker with timeouts and
-   a page limit, not in the web request, but in the same container as the app. Production
-   should run the reading queue in its own locked-down container.
+7. **The parser sandbox is a container, not a VM.** The reading worker is locked down as
+   above, but it shares the host kernel, and it can still reach the database (it has to write
+   the text back). A stricter setup would hand the text over a queue with no database access,
+   or run the parsers under gVisor/Firecracker.
 
 ## Product hypotheses (unverified)
 
@@ -294,9 +322,8 @@ Nothing below has been checked with a customer yet. It is the plan for checking 
 ## What production would add
 
 - OCR confidence per word, so low-confidence lines go straight to review.
-- A separate, sandboxed worker for file reading (poppler, tesseract).
-- Tenants and per-person accounts in place of the shared token (reviews already record a
-  name and keep every version); bid history feeding the supplier rating.
+- Roles and tenants on top of the personal tokens, and a screen to manage them.
+- Bid history feeding the supplier rating.
 - Evals in CI on a schedule, run through the Batch API at half the price.
 
 ## How this was built

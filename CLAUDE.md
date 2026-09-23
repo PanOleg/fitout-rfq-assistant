@@ -12,7 +12,8 @@ code validates, groups, shortlists suppliers and writes RFQs. See README for the
 - Anthropic adapter → `src/Llm/Anthropic/`; port → `src/Llm/LlmClient.php`
 - RFQ writing → `src/Rfq/RfqComposer.php`; suppliers → `src/Suppliers/`, table via `app/Suppliers/`
 - API → `app/Http/Controllers/TenderController.php`; queue: `ReadTenderDocument` → `ExtractTender` (split) → `ExtractTenderPiece` ×N → `AssembleTender`
-- Review screen → `app/Http/Controllers/ReviewController.php`, `resources/views/review.blade.php`; access token → `app/Http/Middleware/RequireAccessToken.php`
+- Review screen → `app/Http/Controllers/ReviewController.php`, `resources/views/review.blade.php`; personal tokens → `app/Models/AccessToken.php`, `app/Http/Middleware/RequireAccessToken.php`, `rfq:issue-token`
+- Trade words per market → `src/Domain/Vocabulary/en-GB.php` (`RFQ_VOCABULARY`); containers → `docker-compose.yml`, `docker/Dockerfile`
 - Evals → cases in `evals/cases/`, scorer in `src/Evals/`, command `app/Console/Commands/RunEvals.php` (`rfq:eval`), committed tables and the model-choice rule in `evals/results/`; large cases from `evals/generators/generate.php`; new case from a real tender → `rfq:draft-case` or the review screen
 
 ## Rules
