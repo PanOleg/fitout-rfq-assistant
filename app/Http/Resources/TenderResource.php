@@ -35,6 +35,7 @@ final class TenderResource extends JsonResource
                 'done' => $this->resource->pieces()->where('status', TenderPiece::DONE)->count(),
             ] : null,
             'failure' => $this->failure,
+            'packages_from' => $result === null ? null : ($this->reviewed_at === null ? 'extraction (not reviewed)' : 'review'),
             'packages' => $result === null ? null : array_map(static fn (WorkPackage $p): array => [
                 'trade' => $p->trade->value,
                 'label' => $p->trade->label(),
@@ -57,6 +58,8 @@ final class TenderResource extends JsonResource
                 'duration_ms' => $result->durationMs,
             ],
             'review' => $this->reviewed_at === null ? null : [
+                'version' => $this->review_version,
+                'reviewer' => $this->resource->reviews()->value('reviewer'),
                 'reviewed_at' => $this->reviewed_at->toIso8601String(),
                 'items' => count($this->review['items'] ?? []),
             ],

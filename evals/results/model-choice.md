@@ -28,12 +28,17 @@ seeing the results.
 | date | cases | runs | decision | table |
 |---|---|---|---|---|
 | 2026-09-22 | 01–06 | 1 per setting | keep claude-opus-5 @ medium — suite saturated, cannot separate settings | [20260922-221031.md](20260922-221031.md) |
-| 2026-09-22 | 01–09 | 1 complete per setting (API credit ran out in run 2) | keep claude-opus-5 @ medium — the rule needs ≥ 3 runs, so it cannot be applied yet | [20260922-candidates-9-cases.md](20260922-candidates-9-cases.md) |
+| 2026-09-22 | 01–09 | 1 complete per setting (API credit ran out in run 2) | keep claude-opus-5 @ medium — the rule needs ≥ 3 runs, so it cannot be applied yet. **Invalid as evidence about Sonnet**: see below | [20260922-candidates-9-cases.md](20260922-candidates-9-cases.md) |
 
-## Proposed amendment (not adopted)
+## Correction, 2026-09-23
 
-Written after seeing the 2026-09-22 data, so it is a proposal for the next decision, not a
-rule applied to that one: **5. No expected item is missed in more than one run.** Sonnet 5 @
-low missed the same line ("4 nr basins", case 03) in both runs it reached, with pooled recall
-0.997 — above every threshold above. A miss that repeats is a blind spot, not noise, and a
-pooled number hides it.
+The Sonnet 5 @ low miss in that run ("4 nr basins", case 03) was caused by a bug in our code,
+not by the model. The repair loop kept items in a map keyed by quote; Sonnet quoted "replace
+4 nr pans and 4 nr basins…" once for both items, so one was overwritten. Opus quoted two
+fragments and lost nothing. Fixed in 11f7369. With the item it actually returned, Sonnet
+would most likely have scored 9/9 — not measured, since the dropped item is not in the report.
+
+A fifth condition ("no expected item missed in more than one run") had been proposed on the
+strength of that miss. It is withdrawn: the evidence for it was the bug. The general point —
+a pooled recall can hide a repeated miss — may still be worth a rule, but it needs a real
+example before it becomes one.

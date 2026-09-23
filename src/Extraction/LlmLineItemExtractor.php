@@ -38,7 +38,7 @@ final readonly class LlmLineItemExtractor implements LineItemExtractor
         $usage = new Usage;
         $durationMs = 0;
         $attempt = 0;
-        /** @var array<string, LineItem> $accepted by quote, across rounds */
+        /** @var list<LineItem> $accepted across rounds */
         $accepted = [];
         /** @var list<string> $warnings */
         $warnings = [];
@@ -55,19 +55,14 @@ final readonly class LlmLineItemExtractor implements LineItemExtractor
 
             [$items, $violations] = $this->validate($response->data, $document);
 
-            // The repair turn asks for the complete list again, and a model does not always
-            // comply. An item that passed in an earlier round and is missing now is kept, not
-            // dropped silently; one it restates (same quote) is replaced by the new version.
-            foreach ($items as $item) {
-                $accepted[self::key($item->sourceText)] = $item;
-            }
+            $accepted = self::carryForward($accepted, $items);
             /** @var list<string> $roundWarnings */
             $roundWarnings = is_array($response->data['warnings'] ?? null) ? $response->data['warnings'] : [];
             $warnings = array_values(array_unique([...$warnings, ...$roundWarnings]));
 
             if ($violations === [] || $attempt > $this->maxRepairs) {
                 return new ExtractionResult(
-                    items: array_values($accepted),
+                    items: $accepted,
                     warnings: $warnings,
                     rejected: $violations,
                     model: $response->model,
@@ -82,9 +77,36 @@ final readonly class LlmLineItemExtractor implements LineItemExtractor
         }
     }
 
-    private static function key(string $sourceText): string
+    /**
+     * The repair turn asks for the complete list again, and a model does not
+     * always comply. Every item of the new round is kept as it is — two items
+     * may share one quote ("4 nr pans and 4 nr basins"). Each new item then
+     * stands in for one earlier item with the same quote, quantity and unit,
+     * the one with the same description first; earlier items nothing stood in
+     * for were left out by the model and are carried forward, not dropped.
+     *
+     * @param  list<LineItem>  $earlier
+     * @param  list<LineItem>  $round
+     * @return list<LineItem>
+     */
+    private static function carryForward(array $earlier, array $round): array
     {
-        return mb_strtolower((string) preg_replace('/\s+/u', ' ', trim($sourceText)));
+        $open = $earlier;
+        foreach ($round as $item) {
+            $same = array_keys(array_filter($open, static fn (LineItem $e): bool => self::identity($e) === self::identity($item)));
+            if ($same === []) {
+                continue;
+            }
+            $exact = array_find($same, static fn (int $k): bool => $open[$k]->description === $item->description);
+            unset($open[$exact ?? $same[0]]);
+        }
+
+        return [...$round, ...array_values($open)];
+    }
+
+    private static function identity(LineItem $item): string
+    {
+        return mb_strtolower((string) preg_replace('/\s+/u', ' ', trim($item->sourceText)))."\0{$item->quantity->value}\0{$item->unit->value}";
     }
 
     /**

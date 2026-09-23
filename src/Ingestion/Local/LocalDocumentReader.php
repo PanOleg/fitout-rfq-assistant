@@ -50,6 +50,7 @@ final readonly class LocalDocumentReader implements DocumentReader
         string|false|null $tesseract = null,
         private int $ocrDpi = 300,
         private int $maxPages = 200,
+        private int $maxChars = 1_000_000,
     ) {
         $finder = new ExecutableFinder;
         $find = static fn (string|false|null $given, string $name): ?string => match (true) {
@@ -78,6 +79,9 @@ final readonly class LocalDocumentReader implements DocumentReader
             'txt' => new ReadDocument((string) file_get_contents($path), ReadDocument::TEXT),
         };
 
+        if (mb_strlen($document->text) > $this->maxChars) {
+            throw new UnreadableDocument("The file contains more than {$this->maxChars} characters of text. Split it into sections and upload them as separate tenders.");
+        }
         if (! self::hasText($document->text)) {
             throw new UnreadableDocument($document->isOcr()
                 ? 'The PDF looks scanned and no text could be recognised on it.'
@@ -107,31 +111,56 @@ final readonly class LocalDocumentReader implements DocumentReader
 
     private function checkPageCount(string $path): void
     {
-        $pdfinfo = $this->pdftotext === null ? null : dirname($this->pdftotext).'/pdfinfo';
-        if ($pdfinfo === null || ! is_executable($pdfinfo)) {
-            return;
-        }
-        if (preg_match('/^Pages:\s+(\d+)/m', $this->run([$pdfinfo, $path]), $m) === 1 && (int) $m[1] > $this->maxPages) {
-            throw new UnreadableDocument("The PDF has {$m[1]} pages; the limit is {$this->maxPages}. Split it into sections and upload them as separate tenders.");
+        $pages = $this->pageCount($path);
+        if ($pages !== null && $pages > $this->maxPages) {
+            throw new UnreadableDocument("The PDF has {$pages} pages; the limit is {$this->maxPages}. Split it into sections and upload them as separate tenders.");
         }
     }
 
+    private function pageCount(string $path): ?int
+    {
+        $pdfinfo = $this->pdftotext === null ? null : dirname($this->pdftotext).'/pdfinfo';
+        if ($pdfinfo === null || ! is_executable($pdfinfo)) {
+            return null;
+        }
+
+        return preg_match('/^Pages:\s+(\d+)/m', $this->run([$pdfinfo, $path]), $m) === 1 ? (int) $m[1] : null;
+    }
+
+    /**
+     * One page at a time: render, recognise, delete. A scan that will not fit
+     * the character limit is refused as soon as it passes it, not after every
+     * page has been through OCR.
+     */
     private function ocr(string $path): string
     {
         $dir = sys_get_temp_dir().'/'.uniqid('ocr-', true);
         mkdir($dir);
+        $pages = $this->pageCount($path);
 
         try {
-            $this->run([(string) $this->pdftoppm, '-r', (string) $this->ocrDpi, '-gray', '-png', $path, "{$dir}/page"]);
-            $pages = glob("{$dir}/page-*.png") ?: [];
-            sort($pages, SORT_NATURAL);
+            $text = '';
+            foreach ($pages === null ? [null] : range(1, $pages) as $page) {
+                $range = $page === null ? [] : ['-f', (string) $page, '-l', (string) $page];
+                $this->run([(string) $this->pdftoppm, ...$range, '-r', (string) $this->ocrDpi, '-gray', '-png', $path, "{$dir}/page"]);
+                $images = glob("{$dir}/page-*.png") ?: [];
+                sort($images, SORT_NATURAL);
+                foreach ($images as $image) {
+                    // --psm 6 reads the page as one block of rows (tables stay rows);
+                    // preserve_interword_spaces keeps the gap between Description and Qty.
+                    $text .= rtrim($this->run([(string) $this->tesseract, $image, '-', '--psm', '6', '-c', 'preserve_interword_spaces=1']))."\n\n";
+                    unlink($image);
+                }
+                if (mb_strlen($text) > $this->maxChars) {
+                    throw new UnreadableDocument(sprintf(
+                        'The scan has more than %d characters of text by page %s — over the limit. Split it into sections and upload them as separate tenders.',
+                        $this->maxChars,
+                        $page === null ? 'the end' : "{$page} of {$pages}",
+                    ));
+                }
+            }
 
-            // --psm 6 reads the page as one block of rows (tables stay rows);
-            // preserve_interword_spaces keeps the gap between Description and Qty.
-            return implode("\n\n", array_map(
-                fn (string $page): string => rtrim($this->run([(string) $this->tesseract, $page, '-', '--psm', '6', '-c', 'preserve_interword_spaces=1'])),
-                $pages,
-            ))."\n";
+            return $text;
         } finally {
             array_map(unlink(...), glob("{$dir}/*") ?: []);
             @rmdir($dir);

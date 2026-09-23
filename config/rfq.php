@@ -23,6 +23,14 @@ return [
     'queue' => [
         'piece_timeout' => (int) env('RFQ_PIECE_TIMEOUT', 300),  // one piece: up to 3 model calls, halving on overflow
         'read_timeout' => (int) env('RFQ_READ_TIMEOUT', 900),    // OCR of a long scan
+        // Separate queues, so a batch of scans cannot occupy every extraction worker.
+        'reading' => env('RFQ_QUEUE_READING', 'reading'),
+        'extraction' => env('RFQ_QUEUE_EXTRACTION', 'extraction'),
+        // Model calls started per minute across all workers; above it, pieces wait rather than
+        // fail on 429. Set from the organisation's rate limit.
+        'llm_per_minute' => (int) env('RFQ_LLM_PER_MINUTE', 40),
+        // How long a piece keeps retrying transient errors (429, overload) before it fails.
+        'piece_retry_minutes' => (int) env('RFQ_PIECE_RETRY_MINUTES', 60),
     ],
 
     'evals' => [
@@ -34,7 +42,9 @@ return [
 
     'regions' => ['london', 'south-east', 'midlands', 'north-west', 'scotland'],
 
-    'max_document_chars' => 200_000,
+    // Each piece is its own job, so size is a cost question, not a timeout one: about 150
+    // pages of dense BoQ. A scan is refused as soon as OCR passes this, not after the last page.
+    'max_document_chars' => 1_000_000,
 
     'max_upload_kb' => 20_480,
 

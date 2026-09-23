@@ -67,12 +67,14 @@ final class ReviewTest extends TestCase
             ['origin' => 'accepted', 'decision' => 'drop'],
             ['origin' => 'rejected', 'decision' => 'keep', 'trade' => 'flooring', 'description' => 'Carpet tiles, 3 floors', 'quantity' => '1260', 'unit' => 'm2', 'source_text' => 'Carpet tiles to open plan, 3 floors at 420 m2 per floor'],
             ['origin' => 'added', 'decision' => 'drop'],
-        ], 'notes' => 'Model multiplied nothing, correctly; the total is ours.'])
+        ], 'notes' => 'Model multiplied nothing, correctly; the total is ours.', 'reviewer' => 'Ann Estimator', 'version' => 0])
             ->assertRedirect("/tenders/{$id}/review")
-            ->assertSessionHas('status', static fn (string $s): bool => str_contains($s, '1 kept, 1 dropped, 1 recovered from rejected, 0 added.'));
+            ->assertSessionHas('status', static fn (string $s): bool => str_contains($s, 'version 1 saved by Ann Estimator: 1 kept, 1 dropped, 1 recovered from rejected, 0 added.'));
 
         $this->getJson("/api/tenders/{$id}")
             ->assertJsonPath('data.review.items', 2)
+            ->assertJsonPath('data.review.version', 1)
+            ->assertJsonPath('data.review.reviewer', 'Ann Estimator')
             ->assertJsonPath('data.packages.1.trade', 'flooring')
             ->assertJsonPath('data.packages.1.items.0.quantity', 1260);
 
@@ -88,9 +90,32 @@ final class ReviewTest extends TestCase
 
         $this->post("/tenders/{$id}/review", ['rows' => [
             ['origin' => 'added', 'decision' => 'keep', 'trade' => 'ceilings', 'description' => 'Grid ceiling', 'quantity' => '500', 'unit' => 'm2', 'source_text' => 'Suspended ceiling 500 m2'],
-        ]])->assertSessionHasErrors('rows.0.source_text');
+        ], 'reviewer' => 'Ann', 'version' => 0])->assertSessionHasErrors('rows.0.source_text');
 
         $this->getJson("/api/tenders/{$id}")->assertJsonPath('data.review', null);
+    }
+
+    #[Test]
+    public function a_save_based_on_an_older_version_is_refused_not_overwriting(): void
+    {
+        $id = $this->extractedTender();
+        $keepPartition = ['origin' => 'accepted', 'decision' => 'keep', 'trade' => 'partitions', 'description' => 'Metal stud partition', 'quantity' => '186', 'unit' => 'm2', 'source_text' => 'Metal stud partition, 2x15mm board each side    186 m2'];
+
+        // Ann and Bob both open version 0; Ann saves first.
+        $this->post("/tenders/{$id}/review", ['rows' => [$keepPartition], 'reviewer' => 'Ann', 'version' => 0])->assertSessionHasNoErrors();
+        $this->post("/tenders/{$id}/review", ['rows' => [['origin' => 'accepted', 'decision' => 'drop']], 'reviewer' => 'Bob', 'version' => 0])
+            ->assertSessionHasErrors(['version' => 'Not saved: Ann saved a newer review (version 1) at '.now()->toDayDateTimeString().'. Reload to see it, then apply your changes again.']);
+
+        $this->getJson("/api/tenders/{$id}")->assertJsonPath('data.review.version', 1)->assertJsonPath('data.review.items', 1);
+        $this->get("/tenders/{$id}/review")->assertSee('Ann')->assertSee('History');
+    }
+
+    #[Test]
+    public function a_review_needs_a_reviewer_name(): void
+    {
+        $id = $this->extractedTender();
+
+        $this->post("/tenders/{$id}/review", ['rows' => [['origin' => 'accepted', 'decision' => 'drop']], 'version' => 0])->assertSessionHasErrors('reviewer');
     }
 
     #[Test]

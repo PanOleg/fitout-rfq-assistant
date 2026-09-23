@@ -10,6 +10,7 @@ use App\Models\TenderStatus;
 use FitOut\Extraction\ExtractionResult;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Queue\Queueable;
+use Throwable;
 
 /**
  * Runs when every piece of a tender has finished or given up: merges them in
@@ -20,7 +21,12 @@ final class AssembleTender implements ShouldQueue
 {
     use Queueable;
 
-    public function __construct(public readonly string $tenderId) {}
+    public int $tries = 3;
+
+    public function __construct(public readonly string $tenderId)
+    {
+        $this->onQueue(config('rfq.queue.extraction'));
+    }
 
     public function handle(): void
     {
@@ -48,5 +54,13 @@ final class AssembleTender implements ShouldQueue
         /** @var non-empty-list<ExtractionResult> $results */
         $results = $pieces->map(static fn (TenderPiece $p): ExtractionResult => $p->extractionResult() ?? throw new \LogicException("Piece {$p->id} is done without a result."))->values()->all();
         $tender->update(['status' => TenderStatus::Extracted, 'extraction' => ExtractionResult::merge($results)->toArray(), 'failure' => null]);
+    }
+
+    public function failed(Throwable $e): void
+    {
+        Tender::query()->whereKey($this->tenderId)->where('status', TenderStatus::Extracting)->update([
+            'status' => TenderStatus::Failed,
+            'failure' => 'The pieces could not be assembled: '.$e->getMessage(),
+        ]);
     }
 }

@@ -93,9 +93,26 @@ button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-vis
     </div>
     <p><label for="notes" class="muted">Notes for the eval case (what the tool got wrong, and why)</label>
       <textarea id="notes" name="notes">{{ old('notes', $tender->review['notes'] ?? '') }}</textarea></p>
+    <input type="hidden" name="version" value="{{ old('version', $tender->review_version) }}">
+    <p><label for="reviewer" class="muted">Your name (recorded with this version)</label>
+      <input id="reviewer" name="reviewer" value="{{ old('reviewer', $reviewer) }}" required style="max-width:280px"></p>
     <p><button type="submit">Save review</button>
       <span class="muted">Packages and RFQs will use these items. An eval case draft is written from your decisions.</span></p>
   </form>
+
+  @if ($history->isNotEmpty())
+    <section>
+      <h2 style="font-size:1.1rem;margin:0 0 8px">History</h2>
+      <div class="sheet"><table style="min-width:0">
+        <thead><tr><th>Version</th><th>Reviewer</th><th>Saved</th><th>Decisions</th></tr></thead>
+        <tbody>
+        @foreach ($history as $review)
+          <tr><td>{{ $review->version }}</td><td>{{ $review->reviewer }}</td><td>{{ $review->created_at->toDayDateTimeString() }}</td><td>{{ $review->summary }}</td></tr>
+        @endforeach
+        </tbody>
+      </table></div>
+    </section>
+  @endif
 </main>
 </body>
 </html>

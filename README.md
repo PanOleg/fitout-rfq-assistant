@@ -49,9 +49,11 @@ what the evals call correct.
 the [`DocumentReader`](src/Ingestion/DocumentReader.php) port and its local adapter
 ([`LocalDocumentReader`](src/Ingestion/Local/LocalDocumentReader.php)). The upload is stored
 and the tender returned at once with status `reading`; the reading runs in a queue worker
-(`ReadTenderDocument`), not in the web request — OCR of a long scan takes minutes, and
-poppler and tesseract parse untrusted files, which belongs in a process that can be isolated
-and killed. PDFs over 200 pages are refused. The pipeline after reading is unchanged, so
+(`ReadTenderDocument`, on its own `reading` queue so scans cannot occupy the extraction
+workers), not in the web request — OCR of a long scan takes minutes, and poppler and tesseract
+parse untrusted files, which belongs in a process that can be isolated and killed. PDFs over
+200 pages are refused; OCR goes page by page and stops as soon as the text passes the
+1M-character limit. The pipeline after reading is unchanged, so
 every quote is still checked against the text:
 
 - PDFs are read with poppler's `pdftotext -layout`, which places text by position. Many BoQ
@@ -72,9 +74,12 @@ structured outputs (the API returns a 400).
 characters) a document is split between paragraphs, then lines — never overlapping, so each
 item is read once ([`ChunkedLineItemExtractor`](src/Extraction/ChunkedLineItemExtractor.php)).
 `ExtractTender` only splits: each piece is an `ExtractTenderPiece` job in one `Bus::batch`, so
-pieces run in parallel on as many workers as there are, each with its own timeout (300 s) and
-retries, and `AssembleTender` merges them in order — or fails the tender naming each failed
-piece. `retry_after` (960 s) sits above the longest job timeout.
+pieces run in parallel on as many workers as there are, each with its own timeout (300 s), and
+`AssembleTender` merges them in order — or fails the tender naming each failed piece. Model
+calls pass through one rate limiter (`rfq.queue.llm_per_minute`), so a big bill waits instead
+of failing on 429; transient errors are retried for up to an hour. `retry_after` (960 s) sits
+above the longest job timeout, and a scheduled `rfq:recover-stuck` moves on any tender a lost
+job left in `extracting`, `pending` or `reading`.
 
 A piece whose answer hits `max_tokens` is halved at a line break and read again; a small piece
 that overflows is retried once (a runaway answer, seen in evals), then fails. Every piece after
@@ -88,13 +93,16 @@ checked against the piece alone, so an item lifted from the context is rejected.
 model with the concrete reasons ([`LlmLineItemExtractor`](src/Extraction/LlmLineItemExtractor.php)).
 After two rounds, anything still failing is returned as `rejected` alongside the model's own
 `warnings`. An item accepted in an earlier round is kept even if the repair answer leaves it
-out, and warnings from every round are kept. The API shows both under `needs_review`. A
+out, two items may share one quote ("4 nr pans and 4 nr basins"), and warnings from every
+round are kept. The API shows both under `needs_review`. A
 missing item is caught at tender review. A wrong one gets priced and built.
 
 **Review closes the loop.** `/tenders/{id}/review` lets an estimator keep, correct or drop
 each item, recover rejected ones and add missed lines. The reviewer is the authority on trade
-and quantity, but every kept item must still quote the document verbatim. Packages and RFQs
-then use the reviewed items, and the decisions are written as an eval case draft
+and quantity, but every kept item must still quote the document verbatim. Each save is a new
+version with the reviewer's name, and a save based on an older version is refused rather than
+overwriting someone else's. Packages and RFQs then use the reviewed items — before review,
+`/rfqs` says so and warns — and the decisions are written as an eval case draft
 (`evals/drafts`, git-ignored until anonymised) — the evals grow from real mistakes.
 
 **LLM only where it earns its place.** Supplier shortlisting is a sort order: trade, region,
@@ -169,7 +177,9 @@ but your own machine), then:
 
 ```bash
 php artisan serve &
-php artisan queue:work &        # run several for parallel pieces; job timeouts are set per job
+php artisan queue:work --queue=extraction &   # run several for parallel pieces
+php artisan queue:work --queue=reading &      # file reading and OCR, kept apart
+php artisan schedule:work &                   # rfq:recover-stuck every ten minutes
 
 curl -s localhost:8000/api/tenders -H 'Content-Type: application/json' \
   -H 'Idempotency-Key: demo-1' \
@@ -224,13 +234,16 @@ one complete run per candidate before the API credit ran out
 | model | effort | cases passed | precision | recall | cost / case | cost, 30 KB case | latency / case |
 |---|---|---|---|---|---|---|---|
 | claude-opus-5 | medium | 9/9 | 1.000 | 1.000 | $0.120 | $0.63 | 35.0 s |
-| claude-sonnet-5 | low | 8/9 | 1.000 | 0.997 | $0.063 | $0.41 | 23.9 s |
+| claude-sonnet-5 | low | 8/9 ¹ | 1.000 | 0.997 ¹ | $0.063 | $0.41 | 23.9 s |
 
-The large cases separate the settings a little: Sonnet 5 @ low missed "4 nr basins" in case 03
-in both runs it reached — a repeatable blind spot, not noise. On the 30 KB bill it is only 1.5×
-cheaper, not 3×. The rule in `model-choice.md` needs three runs per setting, so the default
-stays Opus 5 @ medium; the rule also gained a proposed fifth condition (no item missed in more
-than one run), because pooled recall of 0.997 hid exactly this.
+¹ **Not a model result.** Sonnet's one "miss" (4 nr basins, case 03) was a bug in our repair
+loop, since fixed: it kept items keyed by quote, and Sonnet quoted one line for two items.
+Sonnet most likely had 9/9; this has not been re-measured.
+
+So on nine cases, including the 30 KB bill, the two candidates are not yet told apart on
+quality. On cost, Sonnet 5 @ low is about 2× cheaper overall and 1.5× on the large bill. The
+rule in `model-choice.md` needs three runs per setting; the default stays Opus 5 @ medium
+until they exist.
 
 ## What breaks first
 
@@ -253,9 +266,12 @@ done about it and what is left.
    cells can still split a description from its quantity.
 5. **Conventions the checks do not know.** Quantities in words ("two doorsets"), imperial
    units, and unusual unit spellings are rejected, not guessed. Safe, but noisy.
-6. **Fictional cases.** All nine were written or generated by the author; the generated ones
-   are larger and harder but still follow patterns the author chose. The review screen and
-   `rfq:draft-case` turn real tenders into case drafts, but only real documents can fix this.
+6. **One author for the cases, the prompt and the checks.** All nine cases were written or
+   generated by the same person who wrote the prompt and the validator, so they test that
+   person's idea of a bill: the generated cases are larger and harder but follow the same
+   templates the checks were tuned on. Nothing in the repo is an independent source of truth.
+   The review screen and `rfq:draft-case` turn real tenders, reviewed by estimators, into
+   cases; until some exist, a perfect score says little.
 7. **Parsers are not sandboxed.** poppler and tesseract now run in a worker with timeouts and
    a page limit, not in the web request, but in the same container as the app. Production
    should run the reading queue in its own locked-down container.
@@ -279,8 +295,8 @@ Nothing below has been checked with a customer yet. It is the plan for checking 
 
 - OCR confidence per word, so low-confidence lines go straight to review.
 - A separate, sandboxed worker for file reading (poppler, tesseract).
-- Tenants, per-person accounts and an audit trail in place of the shared token; bid history
-  feeding the supplier rating.
+- Tenants and per-person accounts in place of the shared token (reviews already record a
+  name and keep every version); bid history feeding the supplier rating.
 - Evals in CI on a schedule, run through the Batch API at half the price.
 
 ## How this was built

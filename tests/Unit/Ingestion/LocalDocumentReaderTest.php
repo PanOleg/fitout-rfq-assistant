@@ -79,6 +79,30 @@ final class LocalDocumentReaderTest extends TestCase
     }
 
     #[Test]
+    public function ocr_stops_as_soon_as_the_text_passes_the_limit(): void
+    {
+        $reader = new LocalDocumentReader(maxChars: 30);
+        if (! $reader->canOcr()) {
+            $this->markTestSkipped('pdftoppm and tesseract are not installed.');
+        }
+        $path = $this->file('pdf', MinimalPdf::scanOf(['M50/010 Carpet tiles to open plan   640 m2', 'K40/010 Suspended ceiling, grid     710 m2']));
+
+        $this->expectException(UnreadableDocument::class);
+        $this->expectExceptionMessage('by page 1 of 1');
+
+        $reader->read($path, 'pdf');
+    }
+
+    #[Test]
+    public function a_file_over_the_limit_is_refused_with_a_reason(): void
+    {
+        $this->expectException(UnreadableDocument::class);
+        $this->expectExceptionMessage('more than 50 characters');
+
+        (new LocalDocumentReader(maxChars: 50))->read($this->file('txt', str_repeat('Carpet tiles to open plan, 640 m2. ', 5)), 'txt');
+    }
+
+    #[Test]
     public function a_scan_is_refused_with_a_reason_where_ocr_is_not_installed(): void
     {
         $path = $this->file('pdf', MinimalPdf::withLines([]));
