@@ -1,0 +1,15 @@
+{
+  "chunk_chars": 250,
+  "items": [
+    {"trade": "ceilings", "quantity": 540, "unit": "m2", "source_contains": "600x600 tile on 24mm grid"},
+    {"trade": "ceilings", "quantity": 38, "unit": "m2", "source_contains": "moisture resistant"},
+    {"trade": "ceilings", "quantity": 112, "unit": "m", "source_contains": "plasterboard margin"},
+    {"trade": "flooring", "quantity": 585, "unit": "m2", "source_contains": "Type A to open plan and meeting rooms"},
+    {"trade": "flooring", "quantity": 38, "unit": "m2", "source_contains": "Type B to WCs and cleaner"},
+    {"trade": "flooring", "quantity": 26, "unit": "m2", "source_contains": "Type C to tea point"},
+    {"trade": "flooring", "quantity": 9, "unit": "m2", "source_contains": "Type D, recessed"},
+    {"trade": "flooring", "quantity": 14, "unit": "nr", "source_contains": "trims and thresholds"},
+    {"trade": "decoration", "quantity": 860, "unit": "m2", "source_contains": "emulsion to new and existing walls"}
+  ],
+  "warnings_about": ["columns"]
+}

@@ -27,3 +27,5 @@ Homestead.yaml
 Thumbs.db
 /storage/evals
 /.claude/settings.local.json
+/.deptrac.cache
+/evals/drafts

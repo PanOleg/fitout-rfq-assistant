@@ -16,6 +16,10 @@ jobs:
           php-version: '8.4'
           coverage: none
 
+      # pdftotext / pdftoppm (poppler) and tesseract, so the PDF layout and OCR tests run instead of skipping.
+      - name: Install PDF and OCR tools
+        run: sudo apt-get update -q && sudo apt-get install -y -q poppler-utils tesseract-ocr
+
       - name: Install dependencies
         run: composer install --no-interaction --no-progress --prefer-dist
 

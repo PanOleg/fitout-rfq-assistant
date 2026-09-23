@@ -5,12 +5,14 @@ declare(strict_types=1);
 namespace App\Providers;
 
 use Anthropic\Client;
+use App\Suppliers\EloquentSupplierDirectory;
 use FitOut\Extraction\CachingLineItemExtractor;
+use FitOut\Extraction\ChunkedLineItemExtractor;
 use FitOut\Extraction\LineItemExtractor;
 use FitOut\Extraction\LlmLineItemExtractor;
+use FitOut\Ingestion\DocumentReader;
 use FitOut\Llm\Anthropic\AnthropicLlmClient;
 use FitOut\Llm\LlmClient;
-use FitOut\Suppliers\ArraySupplierDirectory;
 use FitOut\Suppliers\SupplierDirectory;
 use FitOut\Suppliers\SupplierMatcher;
 use Illuminate\Contracts\Foundation\Application;
@@ -29,12 +31,21 @@ class AppServiceProvider extends ServiceProvider
         ));
 
         $this->app->bind(LineItemExtractor::class, fn (Application $app): LineItemExtractor => new CachingLineItemExtractor(
-            new LlmLineItemExtractor($app->make(LlmClient::class), maxRepairs: config('rfq.llm.max_repairs')),
+            new ChunkedLineItemExtractor(
+                new LlmLineItemExtractor($app->make(LlmClient::class), maxRepairs: config('rfq.llm.max_repairs')),
+                config('rfq.llm.chunk_chars'),
+            ),
             Cache::store(),
             config('rfq.llm.model').':'.config('rfq.llm.effort'),
         ));
 
-        $this->app->singleton(SupplierDirectory::class, fn (): SupplierDirectory => new ArraySupplierDirectory(config('suppliers')));
+        $this->app->singleton(DocumentReader::class, fn (): DocumentReader => new DocumentReader(
+            pdftotext: config('rfq.ingestion.pdftotext'),
+            pdftoppm: config('rfq.ingestion.pdftoppm'),
+            tesseract: config('rfq.ingestion.tesseract'),
+        ));
+
+        $this->app->singleton(SupplierDirectory::class, EloquentSupplierDirectory::class);
 
         $this->app->bind(SupplierMatcher::class, fn (Application $app): SupplierMatcher => new SupplierMatcher(
             $app->make(SupplierDirectory::class),

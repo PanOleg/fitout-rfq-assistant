@@ -11,6 +11,10 @@ something the existing cases do not — a new layout, a trap, a trade mix.
 
 ## Steps
 
+For a document already uploaded as a tender, `php artisan rfq:draft-case {tender} {slug}` writes
+the document, an empty expectations file and the model's output (reference only) to the
+git-ignored `evals/drafts/`. Continue from step 1 with those files.
+
 1. **Anonymise first.** Replace client names, addresses, people and prices with fictional
    ones. Keep the structure, units, quantities and awkwardness intact — they are the test.
    Never commit a real client document.

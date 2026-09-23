@@ -8,6 +8,7 @@ use App\Models\Tender;
 use FitOut\Domain\LineItem;
 use FitOut\Domain\WorkPackage;
 use FitOut\Extraction\Violation;
+use FitOut\Ingestion\ReadDocument;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
@@ -24,6 +25,8 @@ final class TenderResource extends JsonResource
             'name' => $this->name,
             'region' => $this->region,
             'return_by' => $this->return_by->toDateString(),
+            'source_filename' => $this->source_filename,
+            'read_by' => $this->read_by,
             'status' => $this->status->value,
             'failure' => $this->failure,
             'packages' => $result === null ? null : array_map(static fn (WorkPackage $p): array => [
@@ -32,7 +35,10 @@ final class TenderResource extends JsonResource
                 'items' => array_map(static fn (LineItem $i): array => $i->toArray(), $p->items),
             ], WorkPackage::groupByTrade($result->items)),
             'needs_review' => $result === null ? null : [
-                'warnings' => $result->warnings,
+                'warnings' => [
+                    ...($this->read_by === ReadDocument::OCR ? ['The document was read by OCR from a scan: quotes were checked against the recognised text, not the file. Check quantities against the original.'] : []),
+                    ...$result->warnings,
+                ],
                 'rejected' => array_map(static fn (Violation $v): array => $v->toArray(), $result->rejected),
             ],
             'extraction' => $result === null ? null : [

@@ -3,6 +3,17 @@
 Laravel 13 / PHP 8.4. Claude extracts line items from fit-out documents; deterministic
 code validates, groups, shortlists suppliers and writes RFQs. See README for the why.
 
+## Map
+
+- File → text (PDF layout, OCR, XLSX, CSV) → `src/Ingestion/DocumentReader.php`
+- Extraction (model call, repair loop) → `src/Extraction/LlmLineItemExtractor.php`; long documents → `ChunkedLineItemExtractor` + `PieceContext`
+- Grounding checks on model output → `src/Extraction/GroundingValidator.php`
+- Prompt, schema, repair message → `src/Extraction/ExtractionPrompt.php`
+- Anthropic adapter → `src/Llm/Anthropic/`; port → `src/Llm/LlmClient.php`
+- RFQ writing → `src/Rfq/RfqComposer.php`; suppliers → `src/Suppliers/`, table via `app/Suppliers/`
+- API → `app/Http/Controllers/TenderController.php` + queued `app/Jobs/ExtractTender.php`
+- Evals → cases in `evals/cases/`, scorer in `src/Evals/`, command `app/Console/Commands/RunEvals.php` (`rfq:eval`), committed tables in `evals/results/`; new case from a real tender → `rfq:draft-case`
+
 ## Rules
 
 - `src/` is framework-free. No `Illuminate\*` there (except in tests). Laravel lives in
@@ -14,7 +25,8 @@ code validates, groups, shortlists suppliers and writes RFQs. See README for the
   field the model fills without a matching check in `GroundingValidator`, or a reason in
   the PR why it cannot be checked.
 - Any change to `ExtractionPrompt` (system text, user message, schema, repair message)
-  bumps `ExtractionPrompt::VERSION`. Use the `prompt-change` skill.
+  bumps `ExtractionPrompt::VERSION`. Use the `prompt-change` skill. Any change to a check in
+  `GroundingValidator` bumps `GroundingValidator::VERSION` (both are in the cache key).
 - Tests never call the API. Use `Tests\Support\ScriptedLlmClient` above the adapter and a
   Guzzle mock transport for the adapter itself.
 - Model choice and effort come from `config/rfq.php`; do not hard-code them elsewhere.

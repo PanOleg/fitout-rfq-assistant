@@ -13,10 +13,13 @@ use Illuminate\Support\Carbon;
 /**
  * @property string $id
  * @property ?string $idempotency_key
+ * @property ?string $request_fingerprint
  * @property string $name
  * @property string $region
  * @property CarbonImmutable $return_by
  * @property string $document
+ * @property ?string $source_filename
+ * @property ?string $read_by
  * @property TenderStatus $status
  * @property ?array<string, mixed> $extraction
  * @property ?string $failure

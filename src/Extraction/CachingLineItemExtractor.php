@@ -11,8 +11,8 @@ use Psr\SimpleCache\CacheInterface;
  * estimator, a retry after a timeout. Identical input under the same prompt
  * version and model gets the stored result instead of a second bill.
  *
- * The key includes the prompt version, so changing the prompt invalidates the
- * cache by construction; nobody has to remember to flush it.
+ * The key includes the prompt and validator versions, so changing either
+ * invalidates the cache by construction; nobody has to remember to flush it.
  */
 final readonly class CachingLineItemExtractor implements LineItemExtractor
 {
@@ -24,9 +24,9 @@ final readonly class CachingLineItemExtractor implements LineItemExtractor
         private int $ttlSeconds = 30 * 24 * 3600,
     ) {}
 
-    public function extract(string $document): ExtractionResult
+    public function extract(string $document, string $context = ''): ExtractionResult
     {
-        $key = $this->key($document);
+        $key = $this->key($context."\0".$document);
 
         $hit = $this->cache->get($key);
         if (is_array($hit)) {
@@ -34,7 +34,7 @@ final readonly class CachingLineItemExtractor implements LineItemExtractor
             return ExtractionResult::fromArray($hit)->servedFromCache();
         }
 
-        $result = $this->inner->extract($document);
+        $result = $this->inner->extract($document, $context);
 
         // Only clean results are worth replaying; a result with rejected items
         // should get a fresh attempt next time.
@@ -49,6 +49,6 @@ final readonly class CachingLineItemExtractor implements LineItemExtractor
     {
         $normalised = (string) preg_replace('/\s+/u', ' ', trim($document));
 
-        return 'extraction:'.hash('sha256', ExtractionPrompt::VERSION."\0".$this->modelKey."\0".$normalised);
+        return 'extraction:'.hash('sha256', ExtractionPrompt::VERSION."\0".GroundingValidator::VERSION."\0".$this->modelKey."\0".$normalised);
     }
 }

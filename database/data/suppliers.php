@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-// Fictional suppliers for the demo. In production this is a table.
+// Fictional suppliers seeded for the demo (SupplierSeeder). Real ones live in the suppliers table.
 return [
     ['id' => 'sup-01', 'name' => 'Northgate Interiors', 'email' => 'tenders@northgate.example', 'trades' => ['partitions', 'ceilings'], 'regions' => ['london', 'south-east'], 'rating' => 4.6],
     ['id' => 'sup-02', 'name' => 'Stud & Board Ltd', 'email' => 'estimating@studboard.example', 'trades' => ['partitions'], 'regions' => ['london', 'midlands'], 'rating' => 4.4],
