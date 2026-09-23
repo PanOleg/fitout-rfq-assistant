@@ -6,8 +6,10 @@ namespace App\Providers;
 
 use Anthropic\Client;
 use App\Suppliers\EloquentSupplierDirectory;
+use FitOut\Domain\TradeVocabulary;
 use FitOut\Extraction\CachingLineItemExtractor;
 use FitOut\Extraction\ChunkedLineItemExtractor;
+use FitOut\Extraction\GroundingValidator;
 use FitOut\Extraction\LineItemExtractor;
 use FitOut\Extraction\LlmLineItemExtractor;
 use FitOut\Ingestion\DocumentReader;
@@ -31,15 +33,20 @@ class AppServiceProvider extends ServiceProvider
             new Client(apiKey: config('services.anthropic.key')),
             config('rfq.llm.model'),
             config('rfq.llm.effort'),
+            config('rfq.llm.refusal_fallback'),
         ));
 
         // One piece at a time, cached per piece: Chunked(Caching(Llm)). The queue runs each
         // piece as its own job through extractRange(); extract() reads a whole document.
         $this->app->bind(ChunkedLineItemExtractor::class, fn (Application $app): ChunkedLineItemExtractor => new ChunkedLineItemExtractor(
             new CachingLineItemExtractor(
-                new LlmLineItemExtractor($app->make(LlmClient::class), maxRepairs: config('rfq.llm.max_repairs')),
+                new LlmLineItemExtractor(
+                    $app->make(LlmClient::class),
+                    new GroundingValidator(TradeVocabulary::load(config('rfq.vocabulary'))),
+                    maxRepairs: config('rfq.llm.max_repairs'),
+                ),
                 Cache::store(),
-                config('rfq.llm.model').':'.config('rfq.llm.effort'),
+                config('rfq.llm.model').':'.config('rfq.llm.effort').':'.config('rfq.vocabulary'),
             ),
             config('rfq.llm.chunk_chars'),
         ));

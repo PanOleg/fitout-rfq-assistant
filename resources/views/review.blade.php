@@ -94,8 +94,12 @@ button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-vis
     <p><label for="notes" class="muted">Notes for the eval case (what the tool got wrong, and why)</label>
       <textarea id="notes" name="notes">{{ old('notes', $tender->review['notes'] ?? '') }}</textarea></p>
     <input type="hidden" name="version" value="{{ old('version', $tender->review_version) }}">
-    <p><label for="reviewer" class="muted">Your name (recorded with this version)</label>
-      <input id="reviewer" name="reviewer" value="{{ old('reviewer', $reviewer) }}" required style="max-width:280px"></p>
+    @if ($reviewer)
+      <p class="muted">Saving as {{ $reviewer }}.</p>
+    @else
+      <p><label for="reviewer" class="muted">Your name (no access tokens are issued yet, so it cannot come from one)</label>
+        <input id="reviewer" name="reviewer" value="{{ old('reviewer') }}" required style="max-width:280px"></p>
+    @endif
     <p><button type="submit">Save review</button>
       <span class="muted">Packages and RFQs will use these items. An eval case draft is written from your decisions.</span></p>
   </form>

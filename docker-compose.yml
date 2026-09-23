@@ -1,0 +1,74 @@
+# Production-shaped layout. The point is the reading worker: poppler and tesseract
+# parse untrusted uploads, so that container has no internet, a read-only file
+# system, no Linux capabilities, and hard memory/CPU/process limits. A parser
+# exploit there can read the uploads and reach the database — nothing else.
+#
+#   docker compose up -d --build
+#   docker compose exec app php artisan migrate --force
+#   docker compose exec app php artisan db:seed --class=SupplierSeeder --force
+#   docker compose exec app php artisan rfq:issue-token you@example.com --name="Your Name"
+
+x-app: &app
+  build: { context: ., dockerfile: docker/Dockerfile }
+  image: fitout-rfq
+  env_file: .env
+  environment: &env
+    APP_ENV: production
+    DB_CONNECTION: pgsql
+    DB_HOST: postgres
+    DB_DATABASE: rfq
+    DB_USERNAME: rfq
+    DB_PASSWORD: ${DB_PASSWORD:-change-me}
+    QUEUE_CONNECTION: database
+    CACHE_STORE: database
+  depends_on: [postgres]
+  restart: unless-stopped
+
+services:
+  postgres:
+    image: postgres:17-alpine
+    environment: { POSTGRES_DB: rfq, POSTGRES_USER: rfq, POSTGRES_PASSWORD: "${DB_PASSWORD:-change-me}" }
+    volumes: [pgdata:/var/lib/postgresql/data]
+    networks: [internal]
+    restart: unless-stopped
+
+  app:
+    <<: *app
+    command: php artisan serve --host=0.0.0.0 --port=8000
+    ports: ["8000:8000"]
+    volumes: [uploads:/app/storage/app/private]
+    networks: [internal, public]
+
+  # Calls the Anthropic API, so it needs the internet; it never parses files.
+  worker-extraction:
+    <<: *app
+    command: php artisan queue:work --queue=extraction
+    networks: [internal, public]
+
+  # Parses untrusted files. No internet (internal network only: the database),
+  # uploads mounted read-only, everything else read-only except a small /tmp.
+  worker-reading:
+    <<: *app
+    command: php artisan queue:work --queue=reading
+    volumes: ["uploads:/app/storage/app/private:ro"]
+    networks: [internal]
+    read_only: true
+    tmpfs: ["/tmp:size=512m", "/app/storage/framework:size=16m,uid=33,gid=33"]
+    cap_drop: [ALL]
+    security_opt: ["no-new-privileges:true"]
+    mem_limit: 1g
+    cpus: 1.0
+    pids_limit: 128
+
+  scheduler:
+    <<: *app
+    command: php artisan schedule:work
+    networks: [internal]
+
+networks:
+  internal: { internal: true }
+  public: {}
+
+volumes:
+  pgdata: {}
+  uploads: {}

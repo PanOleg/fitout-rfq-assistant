@@ -1,0 +1,12 @@
+.git
+.github
+.idea
+.env
+vendor
+node_modules
+storage/logs/*
+storage/app/private/*
+storage/evals
+evals/drafts
+database/*.sqlite
+bootstrap/cache/*.php

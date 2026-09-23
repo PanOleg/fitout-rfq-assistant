@@ -3,16 +3,15 @@
 declare(strict_types=1);
 
 return [
-    // Shared secret for the API (Bearer) and the review screen (Basic, as password).
-    // Unset: open outside production, closed in production.
-    'access_token' => env('RFQ_ACCESS_TOKEN'),
-
     'llm' => [
         'model' => env('RFQ_LLM_MODEL', 'claude-opus-5'),
         // Extraction is reading, not reasoning: medium holds quality at a lower cost.
         // Re-check with `php artisan rfq:eval` before changing it.
         'effort' => env('RFQ_LLM_EFFORT', 'medium'),
         'max_repairs' => 2,
+        // Server-side fallback when the model refuses. A beta API feature: off removes every beta
+        // header from the request, and a refusal then fails the piece.
+        'refusal_fallback' => (bool) env('RFQ_LLM_REFUSAL_FALLBACK', true),
         // Documents longer than this are read in pieces split between paragraphs.
         // About 5k input tokens: a piece of dense BoQ stays well inside one answer.
         'chunk_chars' => 20_000,
@@ -37,6 +36,10 @@ return [
         // Git-ignored: drafts hold client documents until they are anonymised.
         'drafts_dir' => env('RFQ_EVAL_DRAFTS_DIR', base_path('evals/drafts')),
     ],
+
+    // Which trade vocabulary the trade check reads quotes with: a bundled name
+    // (src/Domain/Vocabulary/NAME.php) or a path to a file of the same shape.
+    'vocabulary' => env('RFQ_VOCABULARY', 'en-GB'),
 
     'bidders_per_package' => 3,
 

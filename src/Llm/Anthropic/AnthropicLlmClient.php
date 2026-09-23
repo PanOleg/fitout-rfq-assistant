@@ -31,11 +31,17 @@ final readonly class AnthropicLlmClient implements LlmClient
 {
     private const FALLBACK_BETA = 'server-side-fallback-2026-07-01';
 
-    /** @param 'low'|'medium'|'high'|'xhigh'|'max' $effort */
+    /**
+     * @param  'low'|'medium'|'high'|'xhigh'|'max'  $effort
+     * @param  bool  $refusalFallback  server-side fallback on refusal — a beta feature, so it can be
+     *                                 turned off (RFQ_LLM_REFUSAL_FALLBACK=false) and the request then
+     *                                 carries no beta header at all; a refusal fails the piece instead
+     */
     public function __construct(
         private Client $client,
         private string $model,
         private string $effort = 'medium',
+        private bool $refusalFallback = true,
     ) {}
 
     public function structured(StructuredRequest $request): StructuredResponse
@@ -43,21 +49,28 @@ final readonly class AnthropicLlmClient implements LlmClient
         $startedAt = hrtime(true);
 
         try {
-            $message = $this->client->beta->messages->create(
-                maxTokens: $request->maxTokens,
-                messages: $request->messages,
-                model: $this->model,
-                system: $request->system,
-                thinking: ['type' => 'adaptive'],
-                outputConfig: [
-                    'effort' => $this->effort,
-                    'format' => ['type' => 'json_schema', 'schema' => $request->schema],
-                ],
+            $outputConfig = ['effort' => $this->effort, 'format' => ['type' => 'json_schema', 'schema' => $request->schema]];
+            $message = $this->refusalFallback
                 // If the model declines on policy grounds, let the API retry on its
                 // configured fallback inside the same call instead of failing the job.
-                fallbacks: 'default',
-                betas: [self::FALLBACK_BETA],
-            );
+                ? $this->client->beta->messages->create(
+                    maxTokens: $request->maxTokens,
+                    messages: $request->messages,
+                    model: $this->model,
+                    system: $request->system,
+                    thinking: ['type' => 'adaptive'],
+                    outputConfig: $outputConfig,
+                    fallbacks: 'default',
+                    betas: [self::FALLBACK_BETA],
+                )
+                : $this->client->beta->messages->create(
+                    maxTokens: $request->maxTokens,
+                    messages: $request->messages,
+                    model: $this->model,
+                    system: $request->system,
+                    thinking: ['type' => 'adaptive'],
+                    outputConfig: $outputConfig,
+                );
         } catch (RateLimitException|InternalServerException|APIConnectionException $e) {
             throw new LlmUnavailable($e->getMessage(), previous: $e);
         }

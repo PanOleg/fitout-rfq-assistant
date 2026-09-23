@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Tests\Unit\Extraction;
 
+use FitOut\Domain\TradeVocabulary;
 use FitOut\Evals\EvalCase;
 use FitOut\Extraction\GroundingValidator;
 use FitOut\Ingestion\Local\LocalDocumentReader;
@@ -158,6 +159,44 @@ final class GroundingValidatorTest extends TestCase
         }
     }
 
+    #[Test]
+    public function a_spec_reference_must_be_written_by_the_quoted_line(): void
+    {
+        $validator = new GroundingValidator;
+        $quote = 'Metal stud partition, 2 layers 15mm plasterboard each side,   1,250 m²';
+
+        $this->assertSame([], $validator->problems($this->item(['quantity' => 1250, 'source_text' => $quote, 'spec_reference' => 'K10/120']), self::DOCUMENT), 'the reference in the column before the quote');
+        $this->assertSame([], $validator->problems($this->item(['quantity' => 1250, 'source_text' => $quote, 'spec_reference' => null]), self::DOCUMENT));
+        $this->assertStringContainsString('spec_reference is not written', $validator->problems($this->item(['quantity' => 1250, 'source_text' => $quote, 'spec_reference' => 'K10/999']), self::DOCUMENT)[0], 'invented');
+        $this->assertStringContainsString('spec_reference is not written', $validator->problems($this->item(['quantity' => 1250, 'source_text' => $quote, 'spec_reference' => 'M50/010']), self::DOCUMENT)[0], 'another line\'s reference');
+    }
+
+    #[Test]
+    public function a_description_cannot_carry_numbers_the_document_does_not_have(): void
+    {
+        $quote = 'Carpet tiles 500x500 to open plan office — 842.5 sqm';
+        $item = ['trade' => 'flooring', 'quantity' => 842.5, 'spec_reference' => 'M50/010', 'source_text' => $quote];
+
+        $this->assertSame([], (new GroundingValidator)->problems($this->item(['description' => 'Carpet tiles, 500x500'] + $item), self::DOCUMENT));
+        $this->assertSame(
+            ['description has numbers the document does not (600); describe only what the line says.'],
+            (new GroundingValidator)->problems($this->item(['description' => 'Carpet tiles, 600x600'] + $item), self::DOCUMENT),
+        );
+    }
+
+    #[Test]
+    public function another_market_is_another_vocabulary_file_not_another_validator(): void
+    {
+        $file = sys_get_temp_dir().'/'.uniqid('de-DE-', true).'.php';
+        file_put_contents($file, "<?php return ['trades' => ['flooring' => ['teppich\\w*'], 'ceilings' => ['decke\\w*']], 'locations' => ['im', 'zum']];");
+        $validator = new GroundingValidator(TradeVocabulary::load($file));
+        $source = 'Teppichfliesen im Großraumbüro, 640 m2';
+
+        $this->assertSame([], $validator->problems($this->item(['trade' => 'flooring', 'quantity' => 640, 'source_text' => $source]), $source));
+        $this->assertStringContainsString('reads as flooring', $validator->problems($this->item(['trade' => 'ceilings', 'quantity' => 640, 'source_text' => $source]), $source)[0]);
+        unlink($file);
+    }
+
     /**
      * The checks must never reject what the golden cases say is correct: every
      * expected item must have a faithful quote that passes — the line it sits
@@ -194,6 +233,6 @@ final class GroundingValidatorTest extends TestCase
      */
     private function item(array $overrides): array
     {
-        return $overrides + ['trade' => 'partitions', 'description' => 'Metal stud partition', 'unit' => 'm2', 'spec_reference' => 'K10/120'];
+        return $overrides + ['trade' => 'partitions', 'description' => 'Metal stud partition', 'unit' => 'm2', 'spec_reference' => null];
     }
 }
