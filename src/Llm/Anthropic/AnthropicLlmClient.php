@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace FitOut\Llm\Anthropic;
 
 use Anthropic\Beta\Messages\BetaTextBlock;
+use Anthropic\Beta\Messages\BetaUsage;
 use Anthropic\Client;
 use Anthropic\Core\Exceptions\APIConnectionException;
 use Anthropic\Core\Exceptions\InternalServerException;
@@ -70,7 +71,7 @@ final readonly class AnthropicLlmClient implements LlmClient
             ));
         }
         if ($message->stopReason === 'max_tokens') {
-            throw new LlmOutputTruncated("Response exceeded {$request->maxTokens} tokens.");
+            throw new LlmOutputTruncated("Response exceeded {$request->maxTokens} tokens.", self::usage($message->usage), $message->model);
         }
 
         $json = '';
@@ -90,20 +91,23 @@ final readonly class AnthropicLlmClient implements LlmClient
             throw new LlmUnavailable('Structured output was not a JSON object.');
         }
 
-        $usage = $message->usage;
-
         /** @var array<string, mixed> $data */
         return new StructuredResponse(
             data: $data,
             rawJson: $json,
             model: $message->model,
-            usage: new Usage(
-                inputTokens: $usage->inputTokens,
-                outputTokens: $usage->outputTokens,
-                cacheReadTokens: $usage->cacheReadInputTokens ?? 0,
-                cacheWriteTokens: $usage->cacheCreationInputTokens ?? 0,
-            ),
+            usage: self::usage($message->usage),
             durationMs: $durationMs,
+        );
+    }
+
+    private static function usage(BetaUsage $usage): Usage
+    {
+        return new Usage(
+            inputTokens: $usage->inputTokens,
+            outputTokens: $usage->outputTokens,
+            cacheReadTokens: $usage->cacheReadInputTokens ?? 0,
+            cacheWriteTokens: $usage->cacheCreationInputTokens ?? 0,
         );
     }
 }

@@ -59,6 +59,38 @@ final class LlmLineItemExtractorTest extends TestCase
     }
 
     #[Test]
+    public function an_item_accepted_earlier_is_kept_when_the_repair_answer_leaves_it_out(): void
+    {
+        $invented = ['quantity' => 700, 'source_text' => 'Suspended ceiling, 700 m2'] + self::CEILING;
+        $llm = new ScriptedLlmClient(
+            ['items' => [self::CARPET, $invented], 'warnings' => ['Carpet colour to be confirmed']],
+            // Asked for the complete list again, the model returns only the fixed ceiling.
+            ['items' => [self::CEILING], 'warnings' => []],
+        );
+
+        $result = (new LlmLineItemExtractor($llm))->extract(self::DOCUMENT);
+
+        $this->assertEqualsCanonicalizing([640.0, 710.0], array_map(static fn ($i): float => $i->quantity->value, $result->items), 'the carpet accepted in round 1 is not silently dropped');
+        $this->assertSame(['Carpet colour to be confirmed'], $result->warnings, 'warnings from earlier rounds are kept too');
+    }
+
+    #[Test]
+    public function a_repair_that_restates_an_accepted_item_replaces_it_rather_than_duplicating_it(): void
+    {
+        $invented = ['quantity' => 700, 'source_text' => 'Suspended ceiling, 700 m2'] + self::CEILING;
+        $reworded = ['description' => 'Carpet tiles, open plan'] + self::CARPET;
+        $llm = new ScriptedLlmClient(
+            ['items' => [self::CARPET, $invented], 'warnings' => []],
+            ['items' => [$reworded, self::CEILING], 'warnings' => []],
+        );
+
+        $result = (new LlmLineItemExtractor($llm))->extract(self::DOCUMENT);
+
+        $this->assertCount(2, $result->items);
+        $this->assertContains('Carpet tiles, open plan', array_map(static fn ($i): string => $i->description, $result->items));
+    }
+
+    #[Test]
     public function items_still_failing_after_the_last_repair_are_reported_not_hidden(): void
     {
         $invented = ['quantity' => 700] + self::CEILING;

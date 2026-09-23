@@ -1,0 +1,173 @@
+{
+    "items": [
+        {
+            "trade": "ceilings",
+            "quantity": 578,
+            "unit": "m2",
+            "source_contains": "area X-01"
+        },
+        {
+            "trade": "ceilings",
+            "quantity": 61,
+            "unit": "m2",
+            "source_contains": "area X-02"
+        },
+        {
+            "trade": "ceilings",
+            "quantity": 38,
+            "unit": "m2",
+            "source_contains": "area X-03"
+        },
+        {
+            "trade": "ceilings",
+            "quantity": 41,
+            "unit": "m",
+            "source_contains": "area X-04"
+        },
+        {
+            "trade": "ceilings",
+            "quantity": 676,
+            "unit": "m2",
+            "source_contains": "area X-05"
+        },
+        {
+            "trade": "decoration",
+            "quantity": 230,
+            "unit": "m2",
+            "source_contains": "area X-06"
+        },
+        {
+            "trade": "decoration",
+            "quantity": 651,
+            "unit": "m2",
+            "source_contains": "area X-07"
+        },
+        {
+            "trade": "decoration",
+            "quantity": 39,
+            "unit": "m2",
+            "source_contains": "area X-08"
+        },
+        {
+            "trade": "decoration",
+            "quantity": 431,
+            "unit": "m2",
+            "source_contains": "area X-09"
+        },
+        {
+            "trade": "joinery",
+            "quantity": 131,
+            "unit": "m",
+            "source_contains": "area X-10"
+        },
+        {
+            "trade": "joinery",
+            "quantity": 69,
+            "unit": "m",
+            "source_contains": "area X-11"
+        },
+        {
+            "trade": "joinery",
+            "quantity": 1,
+            "unit": "item",
+            "source_contains": "area X-12"
+        },
+        {
+            "trade": "joinery",
+            "quantity": 7,
+            "unit": "nr",
+            "source_contains": "area X-13"
+        },
+        {
+            "trade": "plumbing",
+            "quantity": 20,
+            "unit": "m",
+            "source_contains": "area X-14"
+        },
+        {
+            "trade": "plumbing",
+            "quantity": 2,
+            "unit": "nr",
+            "source_contains": "area X-15"
+        },
+        {
+            "trade": "plumbing",
+            "quantity": 7,
+            "unit": "nr",
+            "source_contains": "area X-16"
+        },
+        {
+            "trade": "plumbing",
+            "quantity": 8,
+            "unit": "nr",
+            "source_contains": "area X-17"
+        },
+        {
+            "trade": "fire_protection",
+            "quantity": 58,
+            "unit": "m2",
+            "source_contains": "area X-18"
+        },
+        {
+            "trade": "fire_protection",
+            "quantity": 1,
+            "unit": "item",
+            "source_contains": "area X-19"
+        },
+        {
+            "trade": "fire_protection",
+            "quantity": 39,
+            "unit": "nr",
+            "source_contains": "area X-20"
+        },
+        {
+            "trade": "fire_protection",
+            "quantity": 1,
+            "unit": "item",
+            "source_contains": "area X-21"
+        },
+        {
+            "trade": "fire_protection",
+            "quantity": 71,
+            "unit": "m2",
+            "source_contains": "area X-22"
+        },
+        {
+            "trade": "fire_protection",
+            "quantity": 1,
+            "unit": "item",
+            "source_contains": "area X-23"
+        },
+        {
+            "trade": "partitions",
+            "quantity": 235,
+            "unit": "m2",
+            "source_contains": "area X-24"
+        },
+        {
+            "trade": "partitions",
+            "quantity": 191,
+            "unit": "m2",
+            "source_contains": "area X-25"
+        },
+        {
+            "trade": "partitions",
+            "quantity": 61,
+            "unit": "m2",
+            "source_contains": "area X-26"
+        },
+        {
+            "trade": "partitions",
+            "quantity": 354,
+            "unit": "m2",
+            "source_contains": "area X-27"
+        },
+        {
+            "trade": "partitions",
+            "quantity": 232,
+            "unit": "m2",
+            "source_contains": "area X-28"
+        }
+    ],
+    "warnings_about": []
+}

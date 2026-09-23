@@ -12,6 +12,7 @@ use FitOut\Llm\Exceptions\LlmOutputTruncated;
 use FitOut\Llm\LlmClient;
 use FitOut\Llm\StructuredRequest;
 use FitOut\Llm\StructuredResponse;
+use FitOut\Llm\Usage;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 use Tests\Support\ScriptedLlmClient;
@@ -102,7 +103,7 @@ final class ChunkedLineItemExtractorTest extends TestCase
             public function structured(StructuredRequest $request): StructuredResponse
             {
                 if (++$this->calls === 1) {
-                    throw new LlmOutputTruncated('Response exceeded 16000 tokens.');
+                    throw new LlmOutputTruncated('Response exceeded 16000 tokens.', new Usage(1000, 16000), 'claude-opus-5');
                 }
 
                 return (new ScriptedLlmClient(['items' => [], 'warnings' => ['ok']]))->structured($request);
@@ -113,6 +114,7 @@ final class ChunkedLineItemExtractorTest extends TestCase
 
         $this->assertSame(2, $llm->calls);
         $this->assertSame(['ok'], $result->warnings);
+        $this->assertSame(16200, $result->usage->outputTokens, 'the runaway answer is paid for and counted');
     }
 
     #[Test]

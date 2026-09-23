@@ -61,7 +61,15 @@ final readonly class ExtractionResult
             $durationMs += $part->durationMs;
         }
 
-        return new self($items, $warnings, $rejected, $parts[0]->model, $parts[0]->promptVersion, $usage, $attempts, $durationMs);
+        $fromCache = array_all($parts, static fn (self $p): bool => $p->fromCache);
+
+        return new self($items, $warnings, $rejected, $parts[0]->model, $parts[0]->promptVersion, $usage, $attempts, $durationMs, $fromCache);
+    }
+
+    /** The same result, charged for calls that were paid for but produced nothing usable. */
+    public function withWastedUsage(Usage $wasted): self
+    {
+        return new self($this->items, $this->warnings, $this->rejected, $this->model, $this->promptVersion, $this->usage->plus($wasted), $this->attempts, $this->durationMs, $this->fromCache, $this->error);
     }
 
     public function costUsd(): ?float
@@ -108,6 +116,8 @@ final readonly class ExtractionResult
             usage: new Usage($usage['input_tokens'], $usage['output_tokens'], $usage['cache_read_tokens'], $usage['cache_write_tokens']),
             attempts: (int) $data['attempts'],
             durationMs: (int) $data['duration_ms'],
+            fromCache: (bool) ($data['from_cache'] ?? false),
+            error: isset($data['error']) ? (string) $data['error'] : null,
         );
     }
 }

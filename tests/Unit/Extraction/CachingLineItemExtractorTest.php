@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Tests\Unit\Extraction;
 
 use FitOut\Extraction\CachingLineItemExtractor;
+use FitOut\Extraction\ExtractionResult;
 use FitOut\Extraction\LlmLineItemExtractor;
 use Illuminate\Cache\ArrayStore;
 use Illuminate\Cache\Repository;
@@ -31,6 +32,7 @@ final class CachingLineItemExtractorTest extends TestCase
         $this->assertFalse($first->fromCache);
         $this->assertTrue($second->fromCache);
         $this->assertEquals($first->items, $second->items);
+        $this->assertTrue(ExtractionResult::fromArray($second->toArray())->fromCache, 'survives being stored as a piece result');
     }
 
     #[Test]
@@ -46,14 +48,18 @@ final class CachingLineItemExtractorTest extends TestCase
     }
 
     #[Test]
-    public function results_with_rejected_items_are_not_cached(): void
+    public function results_with_rejected_items_are_cached_for_a_day_not_a_month(): void
     {
         $bad = ['items' => [['quantity' => 999] + self::ANSWER['items'][0]], 'warnings' => []];
-        $llm = new ScriptedLlmClient($bad, $bad, $bad, self::ANSWER);
-        $extractor = new CachingLineItemExtractor(new LlmLineItemExtractor($llm), new Repository(new ArrayStore), 'm');
+        $llm = new ScriptedLlmClient($bad, $bad, $bad);
+        $cache = new Repository(new ArrayStore);
+        $extractor = new CachingLineItemExtractor(new LlmLineItemExtractor($llm), $cache, 'm');
 
-        $this->assertCount(1, $extractor->extract(self::DOCUMENT)->rejected);
-        $this->assertCount(0, $extractor->extract(self::DOCUMENT)->rejected);
-        $this->assertCount(4, $llm->requests);
+        $first = $extractor->extract(self::DOCUMENT);
+        $second = $extractor->extract(self::DOCUMENT);
+
+        $this->assertCount(1, $first->rejected);
+        $this->assertTrue($second->fromCache, 'a re-upload is served, rejected items and all');
+        $this->assertCount(3, $llm->requests, 'one extraction: first attempt and two repairs');
     }
 }

@@ -59,8 +59,12 @@ final class AnthropicLlmClientTest extends TestCase
     {
         $llm = $this->clientReturning(new Response(200, ['content-type' => 'application/json'], $this->message('{"items":[', 'max_tokens')));
 
-        $this->expectException(LlmOutputTruncated::class);
-        $llm->structured($this->request());
+        try {
+            $llm->structured($this->request());
+            $this->fail('Expected truncation.');
+        } catch (LlmOutputTruncated $e) {
+            $this->assertGreaterThan(0, $e->usage->outputTokens, 'a truncated answer was still billed');
+        }
     }
 
     #[Test]

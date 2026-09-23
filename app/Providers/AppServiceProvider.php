@@ -11,6 +11,7 @@ use FitOut\Extraction\ChunkedLineItemExtractor;
 use FitOut\Extraction\LineItemExtractor;
 use FitOut\Extraction\LlmLineItemExtractor;
 use FitOut\Ingestion\DocumentReader;
+use FitOut\Ingestion\Local\LocalDocumentReader;
 use FitOut\Llm\Anthropic\AnthropicLlmClient;
 use FitOut\Llm\LlmClient;
 use FitOut\Suppliers\SupplierDirectory;
@@ -30,19 +31,23 @@ class AppServiceProvider extends ServiceProvider
             config('rfq.llm.effort'),
         ));
 
-        $this->app->bind(LineItemExtractor::class, fn (Application $app): LineItemExtractor => new CachingLineItemExtractor(
-            new ChunkedLineItemExtractor(
+        // One piece at a time, cached per piece: Chunked(Caching(Llm)). The queue runs each
+        // piece as its own job through extractRange(); extract() reads a whole document.
+        $this->app->bind(ChunkedLineItemExtractor::class, fn (Application $app): ChunkedLineItemExtractor => new ChunkedLineItemExtractor(
+            new CachingLineItemExtractor(
                 new LlmLineItemExtractor($app->make(LlmClient::class), maxRepairs: config('rfq.llm.max_repairs')),
-                config('rfq.llm.chunk_chars'),
+                Cache::store(),
+                config('rfq.llm.model').':'.config('rfq.llm.effort'),
             ),
-            Cache::store(),
-            config('rfq.llm.model').':'.config('rfq.llm.effort'),
+            config('rfq.llm.chunk_chars'),
         ));
+        $this->app->bind(LineItemExtractor::class, ChunkedLineItemExtractor::class);
 
-        $this->app->singleton(DocumentReader::class, fn (): DocumentReader => new DocumentReader(
+        $this->app->singleton(DocumentReader::class, fn (): DocumentReader => new LocalDocumentReader(
             pdftotext: config('rfq.ingestion.pdftotext'),
             pdftoppm: config('rfq.ingestion.pdftoppm'),
             tesseract: config('rfq.ingestion.tesseract'),
+            maxPages: config('rfq.ingestion.max_pages'),
         ));
 
         $this->app->singleton(SupplierDirectory::class, EloquentSupplierDirectory::class);

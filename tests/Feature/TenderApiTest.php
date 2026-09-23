@@ -4,16 +4,22 @@ declare(strict_types=1);
 
 namespace Tests\Feature;
 
+use App\Jobs\ExtractTender;
+use App\Jobs\ReadTenderDocument;
 use App\Models\Tender;
+use App\Models\TenderPiece;
 use Database\Seeders\SupplierSeeder;
 use FitOut\Extraction\ExtractionPrompt;
 use FitOut\Ingestion\DocumentReader;
+use FitOut\Ingestion\Local\LocalDocumentReader;
 use FitOut\Llm\Exceptions\LlmRefused;
 use FitOut\Llm\LlmClient;
 use FitOut\Llm\StructuredRequest;
 use FitOut\Llm\StructuredResponse;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\Queue;
+use Illuminate\Support\Facades\Storage;
 use PHPUnit\Framework\Attributes\Test;
 use Tests\Support\MinimalPdf;
 use Tests\Support\ScriptedLlmClient;
@@ -26,6 +32,12 @@ final class TenderApiTest extends TestCase
     protected bool $seed = true;
 
     protected string $seeder = SupplierSeeder::class;
+
+    protected function setUp(): void
+    {
+        parent::setUp();
+        Storage::fake('local'); // uploads land here, not in storage/app
+    }
 
     private const DOCUMENT = <<<'DOC'
     LEVEL 3 CAT A+ FIT-OUT — SCHEDULE OF WORKS
@@ -108,15 +120,78 @@ final class TenderApiTest extends TestCase
     #[Test]
     public function a_scanned_pdf_is_refused_with_a_reason_where_ocr_is_not_installed(): void
     {
-        $this->app->instance(DocumentReader::class, new DocumentReader(pdftoppm: false, tesseract: false));
+        $this->app->instance(DocumentReader::class, new LocalDocumentReader(pdftoppm: false, tesseract: false));
         $payload = ['file' => UploadedFile::fake()->createWithContent('scan.pdf', MinimalPdf::withLines([]))] + $this->payload();
         unset($payload['document']);
 
-        $this->post('/api/tenders', $payload, ['Accept' => 'application/json'])
-            ->assertUnprocessable()
-            ->assertJsonPath('errors.file.0', 'The PDF has no text layer — it looks scanned — and OCR is not available on this server.');
+        $id = $this->post('/api/tenders', $payload, ['Accept' => 'application/json'])->assertAccepted()->json('data.id');
 
-        $this->assertSame(0, Tender::query()->count());
+        $this->getJson("/api/tenders/{$id}")
+            ->assertJsonPath('data.status', 'failed')
+            ->assertJsonPath('data.failure', 'The PDF has no text layer — it looks scanned — and OCR is not available on this server.');
+    }
+
+    #[Test]
+    public function an_upload_is_read_in_the_queue_not_in_the_request(): void
+    {
+        Queue::fake();
+        $payload = ['file' => UploadedFile::fake()->createWithContent('schedule.pdf', MinimalPdf::withLines(explode("\n", self::DOCUMENT)))] + $this->payload();
+        unset($payload['document']);
+
+        $this->post('/api/tenders', $payload, ['Accept' => 'application/json'])
+            ->assertAccepted()
+            ->assertJsonPath('data.status', 'reading')
+            ->assertJsonPath('data.packages', null);
+
+        Queue::assertPushed(ReadTenderDocument::class);
+        Queue::assertNotPushed(ExtractTender::class);
+    }
+
+    #[Test]
+    public function a_long_document_is_extracted_one_piece_per_job_and_merged_in_order(): void
+    {
+        config(['rfq.llm.chunk_chars' => 120]);
+        $llm = new ScriptedLlmClient(
+            ['items' => [self::ANSWER['items'][0]], 'warnings' => []],
+            ['items' => [self::ANSWER['items'][1]], 'warnings' => []],
+            ['items' => [self::ANSWER['items'][2]], 'warnings' => []],
+        );
+        $this->app->instance(LlmClient::class, $llm);
+        $document = str_replace("\n", "\n\n", self::DOCUMENT);
+
+        $id = $this->postJson('/api/tenders', ['document' => $document] + $this->payload())->json('data.id');
+
+        $this->assertSame(3, TenderPiece::query()->where('tender_id', $id)->where('status', TenderPiece::DONE)->count());
+        $this->assertCount(3, $llm->requests, 'one call per piece');
+        $this->getJson("/api/tenders/{$id}")
+            ->assertJsonPath('data.status', 'extracted')
+            ->assertJsonPath('data.packages.0.trade', 'partitions')
+            ->assertJsonCount(2, 'data.packages.1.items');
+    }
+
+    #[Test]
+    public function a_failed_piece_fails_the_tender_and_says_which(): void
+    {
+        config(['rfq.llm.chunk_chars' => 120]);
+        $this->app->instance(LlmClient::class, new class implements LlmClient
+        {
+            private int $calls = 0;
+
+            public function structured(StructuredRequest $request): StructuredResponse
+            {
+                if (++$this->calls === 2) {
+                    throw new LlmRefused('Model declined the request (cyber).');
+                }
+
+                return (new ScriptedLlmClient(['items' => [], 'warnings' => []]))->structured($request);
+            }
+        });
+
+        $id = $this->postJson('/api/tenders', ['document' => str_replace("\n", "\n\n", self::DOCUMENT)] + $this->payload())->json('data.id');
+
+        $this->getJson("/api/tenders/{$id}")
+            ->assertJsonPath('data.status', 'failed')
+            ->assertJsonPath('data.failure', 'Piece 2 of 3: Model declined the request (cyber).');
     }
 
     #[Test]
@@ -128,9 +203,11 @@ final class TenderApiTest extends TestCase
 
         $this->artisan('rfq:draft-case', ['tender' => $id, 'slug' => 'Level 3 schedule', '--dir' => $dir])->assertSuccessful();
 
-        $this->assertSame(self::DOCUMENT, file_get_contents("{$dir}/07-level-3-schedule.txt"));
-        $this->assertSame(['items' => [], 'warnings_about' => []], json_decode((string) file_get_contents("{$dir}/07-level-3-schedule.expected.json"), true), 'expectations are left for a person');
-        $this->assertStringContainsString('flooring 640 m2', (string) file_get_contents("{$dir}/07-level-3-schedule.model-output.md"));
+        $stem = substr((string) (glob("{$dir}/*-level-3-schedule.txt") ?: [''])[0], 0, -4);
+        $this->assertMatchesRegularExpression('/\/\d{2}-level-3-schedule$/', $stem, 'numbered after the existing cases');
+        $this->assertSame(self::DOCUMENT, file_get_contents("{$stem}.txt"));
+        $this->assertSame(['items' => [], 'warnings_about' => []], json_decode((string) file_get_contents("{$stem}.expected.json"), true), 'expectations are left for a person');
+        $this->assertStringContainsString('flooring 640 m2', (string) file_get_contents("{$stem}.model-output.md"));
 
         array_map(unlink(...), glob("{$dir}/*") ?: []);
         rmdir($dir);
@@ -166,8 +243,30 @@ final class TenderApiTest extends TestCase
 
         $this->getJson("/api/tenders/{$id}")
             ->assertJsonPath('data.status', 'failed')
-            ->assertJsonPath('data.failure', 'Model declined the request (cyber).');
+            ->assertJsonPath('data.failure', 'Piece 1 of 1: Model declined the request (cyber).');
         $this->getJson("/api/tenders/{$id}/rfqs")->assertStatus(409);
+    }
+
+    #[Test]
+    public function with_a_token_configured_the_api_needs_it(): void
+    {
+        config(['rfq.access_token' => 'secret-token']);
+        $this->app->instance(LlmClient::class, new ScriptedLlmClient(self::ANSWER));
+
+        $this->postJson('/api/tenders', $this->payload())->assertUnauthorized();
+        $this->postJson('/api/tenders', $this->payload(), ['Authorization' => 'Bearer wrong'])->assertUnauthorized();
+        $this->postJson('/api/tenders', $this->payload(), ['Authorization' => 'Bearer secret-token'])->assertAccepted();
+    }
+
+    #[Test]
+    public function without_a_token_production_is_closed(): void
+    {
+        config(['rfq.access_token' => null]);
+        $this->app->detectEnvironment(static fn (): string => 'production');
+
+        $this->postJson('/api/tenders', $this->payload())
+            ->assertUnauthorized()
+            ->assertJsonPath('message', 'RFQ_ACCESS_TOKEN is not set; the service is closed until it is.');
     }
 
     #[Test]

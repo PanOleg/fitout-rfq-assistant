@@ -12,6 +12,7 @@ use FitOut\Evals\EvalCase;
 use FitOut\Evals\ExpectedItem;
 use FitOut\Evals\Scorer;
 use FitOut\Extraction\ExtractionResult;
+use FitOut\Ingestion\Local\LocalDocumentReader;
 use FitOut\Llm\Usage;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
@@ -44,7 +45,7 @@ final class ScorerTest extends TestCase
     #[Test]
     public function every_fixture_has_expectations_that_load(): void
     {
-        $cases = EvalCase::loadDirectory(__DIR__.'/../../../evals/cases');
+        $cases = EvalCase::loadDirectory(__DIR__.'/../../../evals/cases', new LocalDocumentReader);
 
         $this->assertGreaterThanOrEqual(5, count($cases));
         foreach ($cases as $case) {

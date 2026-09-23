@@ -14,10 +14,13 @@ use FitOut\Extraction\ExtractionPrompt;
 use FitOut\Extraction\ExtractionResult;
 use FitOut\Extraction\GroundingValidator;
 use FitOut\Extraction\LlmLineItemExtractor;
+use FitOut\Ingestion\DocumentReader;
 use FitOut\Llm\Anthropic\AnthropicLlmClient;
 use FitOut\Llm\Exceptions\LlmException;
+use FitOut\Llm\Exceptions\LlmOutputTruncated;
 use FitOut\Llm\Usage;
 use Illuminate\Console\Command;
+use Throwable;
 
 /**
  * Runs every case in evals/cases against the live model, uncached, and
@@ -35,6 +38,7 @@ final class RunEvals extends Command
         {--model=* : model(s) to run; defaults to RFQ_LLM_MODEL}
         {--effort=* : effort level(s) (low|medium|high|xhigh|max); defaults to RFQ_LLM_EFFORT}
         {--without-context : read later pieces of long documents without the headings above them, to measure what that context is worth}
+        {--repeat=1 : run each model/effort this many times and report the spread}
         {--min-recall=0.9 : exit non-zero if any run is below this overall recall}';
 
     protected $description = 'Score line-item extraction against the golden cases';
@@ -60,7 +64,7 @@ final class RunEvals extends Command
         }
 
         $cases = array_values(array_filter(
-            EvalCase::loadDirectory(base_path('evals/cases')),
+            EvalCase::loadDirectory(base_path('evals/cases'), app(DocumentReader::class)),
             fn (EvalCase $c): bool => ! is_string($this->option('case')) || str_contains($c->name, $this->option('case')),
         ));
         if ($cases === []) {
@@ -69,16 +73,34 @@ final class RunEvals extends Command
             return self::FAILURE;
         }
 
-        $runs = [];
+        $repeat = max(1, (int) $this->option('repeat'));
+        /** @var array<string, non-empty-list<RunSummary>> $groups every group gets at least one run */
+        $groups = [];
+        $stopped = null;
         foreach ($models as $model) {
             foreach ($efforts as $effort) {
-                /** @var 'low'|'medium'|'high'|'xhigh'|'max' $effort */
-                $runs[] = $this->evaluate($scorer, $model, $effort, $cases);
+                for ($i = 1; $i <= $repeat && $stopped === null; $i++) {
+                    try {
+                        /** @var 'low'|'medium'|'high'|'xhigh'|'max' $effort */
+                        $groups["{$model}|{$effort}"][] = $this->evaluate($scorer, $model, $effort, $cases);
+                    } catch (Throwable $e) {
+                        // Not a model failure (those are scored above) but the run itself: billing,
+                        // auth, a bad request. Stop, and keep the table of the runs that finished.
+                        $stopped = $e::class.': '.$e->getMessage();
+                    }
+                }
             }
         }
+        if ($stopped !== null) {
+            $this->error("Stopped: {$stopped}");
+        }
+        if ($groups === []) {
+            return self::FAILURE;
+        }
+        $runs = array_merge(...array_values($groups));
 
-        $heading = sprintf('%s — prompt %s%s, validator %s, %d cases', now()->format('Y-m-d'), ExtractionPrompt::VERSION, $this->option('without-context') ? ' without piece context' : '', GroundingValidator::VERSION, count($cases));
-        $table = RunSummary::markdown($runs, $heading);
+        $heading = sprintf('%s — prompt %s%s, validator %s, %d cases%s', now()->format('Y-m-d'), ExtractionPrompt::VERSION, $this->option('without-context') ? ' without piece context' : '', GroundingValidator::VERSION, count($cases), $repeat > 1 ? ", {$repeat} runs each" : '');
+        $table = $repeat > 1 ? RunSummary::spreadMarkdown(array_values($groups), $heading) : RunSummary::markdown($runs, $heading);
         $this->newLine();
         $this->line($table);
 
@@ -89,7 +111,7 @@ final class RunEvals extends Command
             $this->info("Comparison: {$path} (commit it with the decision it supports)");
         }
 
-        return array_all($runs, fn (RunSummary $r): bool => $r->recall >= (float) $this->option('min-recall')) ? self::SUCCESS : self::FAILURE;
+        return $stopped === null && array_all($runs, fn (RunSummary $r): bool => $r->recall >= (float) $this->option('min-recall')) ? self::SUCCESS : self::FAILURE;
     }
 
     /**
@@ -110,7 +132,8 @@ final class RunEvals extends Command
             } catch (LlmException $e) {
                 // One failed case must not cost the whole grid: it scores as all-missed and is counted.
                 $this->line('      <fg=red>error: '.$e::class.': '.$e->getMessage().'</>');
-                $result = new ExtractionResult([], ['error: '.$e->getMessage()], [], $model, ExtractionPrompt::VERSION, new Usage, 0, 0, error: $e->getMessage());
+                $spent = $e instanceof LlmOutputTruncated ? $e->usage : new Usage;
+                $result = new ExtractionResult([], ['error: '.$e->getMessage()], [], $model, ExtractionPrompt::VERSION, $spent, 0, 0, error: $e->getMessage());
             }
             $scores[] = $score = $scorer->score($case, $result);
             foreach ([...array_map(fn ($m) => "missed: {$m}", $score->missed), ...array_map(fn ($u) => "unexpected: {$u}", $score->unexpected), ...array_map(fn ($w) => "no warning about: {$w}", $score->unflagged)] as $problem) {

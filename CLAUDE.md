@@ -5,14 +5,15 @@ code validates, groups, shortlists suppliers and writes RFQs. See README for the
 
 ## Map
 
-- File → text (PDF layout, OCR, XLSX, CSV) → `src/Ingestion/DocumentReader.php`
+- File → text: port `src/Ingestion/DocumentReader.php`, adapter `src/Ingestion/Local/` (poppler, tesseract, OpenSpout)
 - Extraction (model call, repair loop) → `src/Extraction/LlmLineItemExtractor.php`; long documents → `ChunkedLineItemExtractor` + `PieceContext`
 - Grounding checks on model output → `src/Extraction/GroundingValidator.php`
 - Prompt, schema, repair message → `src/Extraction/ExtractionPrompt.php`
 - Anthropic adapter → `src/Llm/Anthropic/`; port → `src/Llm/LlmClient.php`
 - RFQ writing → `src/Rfq/RfqComposer.php`; suppliers → `src/Suppliers/`, table via `app/Suppliers/`
-- API → `app/Http/Controllers/TenderController.php` + queued `app/Jobs/ExtractTender.php`
-- Evals → cases in `evals/cases/`, scorer in `src/Evals/`, command `app/Console/Commands/RunEvals.php` (`rfq:eval`), committed tables in `evals/results/`; new case from a real tender → `rfq:draft-case`
+- API → `app/Http/Controllers/TenderController.php`; queue: `ReadTenderDocument` → `ExtractTender` (split) → `ExtractTenderPiece` ×N → `AssembleTender`
+- Review screen → `app/Http/Controllers/ReviewController.php`, `resources/views/review.blade.php`; access token → `app/Http/Middleware/RequireAccessToken.php`
+- Evals → cases in `evals/cases/`, scorer in `src/Evals/`, command `app/Console/Commands/RunEvals.php` (`rfq:eval`), committed tables and the model-choice rule in `evals/results/`; large cases from `evals/generators/generate.php`; new case from a real tender → `rfq:draft-case` or the review screen
 
 ## Rules
 

@@ -8,8 +8,8 @@ use FitOut\Domain\Unit;
 
 /**
  * What a reader of one piece of a long bill would need from the pages before
- * it: the document's title block, the table header in force, and the section
- * heading the piece sits under ("FLOOR FINISHES").
+ * it: the document's title block, the table header in force, and the headings
+ * the piece sits under, outermost first ("LEVEL 2", "FLOOR FINISHES").
  * Without them a line like "Type A to open plan  585 m2" has no trade.
  *
  * Only whole lines from before the piece are used, so nothing here is new
@@ -22,11 +22,11 @@ final class PieceContext
 
     private const TITLE_LINES = 4;
 
-    /**
-     * Only the nearest heading: an earlier sibling ("SUSPENDED CEILINGS" above
-     * "FLOOR FINISHES") is no longer in force and would only mislead.
-     */
-    private const HEADINGS = 1;
+    /** Headings that open a part of the building or of the bill, not a trade section. */
+    private const OUTER = '/^(?:(?:level|storey|building|block|zone|area|bill|part)\b|floor\s+\d|(?:\d+(?:st|nd|rd|th)|ground|first|second|third|fourth|fifth|basement|mezzanine|roof)\s+floor\b)/i';
+
+    /** Words that make a line in capitals a note, not a heading: "ALL QUANTITIES PROVISIONAL". */
+    private const NOTE_WORDS = '/\b(?:all|are|is|be|to be|shall|must|note|notes|provisional|include|includes|including|exclude|excluded|excluding|rates?|prices?|only|see|refer)\b/i';
 
     public static function before(string $document, int $offset): string
     {
@@ -49,7 +49,20 @@ final class PieceContext
             $title[] = $line;
         }
         $header = array_find(array_reverse($lines), self::isTableHeader(...));
-        $headings = array_slice(array_values(array_filter($lines, self::isHeading(...))), -self::HEADINGS);
+
+        // Headings in force: a new heading replaces the last one at its level and
+        // closes everything below it, so an earlier sibling ("SUSPENDED CEILINGS"
+        // above "FLOOR FINISHES") does not linger, but "LEVEL 2" above both does.
+        $open = [];
+        foreach ($lines as $line) {
+            $level = self::headingLevel($line);
+            if ($level !== null) {
+                $open = array_filter($open, static fn (int $l): bool => $l < $level, ARRAY_FILTER_USE_KEY);
+                $open[$level] = trim($line);
+            }
+        }
+        ksort($open);
+        $headings = array_values($open);
 
         $context = [];
         foreach ([...$title, ...($header === null ? [] : [$header]), ...$headings] as $line) {
@@ -67,15 +80,30 @@ final class PieceContext
             && preg_match('/\b(?:unit|description|desc)\b/i', $line) === 1;
     }
 
-    /** A short line in capitals with no quantity in it, e.g. "FLOOR FINISHES" or "K10 PARTITIONS". */
-    private static function isHeading(string $line): bool
+    /**
+     * 1 for a part of the building or bill ("LEVEL 2", "BILL No. 3"), 2 for a
+     * section in capitals ("FLOOR FINISHES", "K10 PARTITIONS"), and for
+     * numbered headings the depth of the number ("2 Finishes" → 2,
+     * "2.3 Floor finishes" → 3). Null for anything else, including notes in
+     * capitals and measured lines.
+     */
+    private static function headingLevel(string $line): ?int
     {
         $text = trim($line);
+        if (mb_strlen($text) < 3 || mb_strlen($text) > 60 || self::isMeasured($text) || preg_match(self::NOTE_WORDS, $text) === 1) {
+            return null;
+        }
+        if (preg_match(self::OUTER, $text) === 1 && preg_match('/\p{Lu}/u', $text) === 1) {
+            return 1;
+        }
+        if (preg_match('/^(\d+(?:\.\d+)*)\.?\s+\p{Lu}[\p{L} &\/,-]{2,}$/u', $text, $m) === 1) {
+            return 1 + substr_count($m[1], '.') + 1;
+        }
+        if (preg_match('/\p{Lu}{3}/u', $text) === 1 && mb_strtoupper($text) === $text) {
+            return 2;
+        }
 
-        return mb_strlen($text) >= 3 && mb_strlen($text) <= 60
-            && preg_match('/\p{Lu}{3}/u', $text) === 1
-            && mb_strtoupper($text) === $text
-            && ! self::isMeasured($text);
+        return null;
     }
 
     private static function isMeasured(string $line): bool

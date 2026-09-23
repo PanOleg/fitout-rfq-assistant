@@ -9,7 +9,9 @@ use Psr\SimpleCache\CacheInterface;
 /**
  * Contractors re-upload the same BoQ constantly — revised drawings, a second
  * estimator, a retry after a timeout. Identical input under the same prompt
- * version and model gets the stored result instead of a second bill.
+ * version and model gets the stored result instead of a second bill. It wraps
+ * the model call for one piece, so a long bill whose job is retried, or a
+ * revision that changes one section, pays only for the pieces that changed.
  *
  * The key includes the prompt and validator versions, so changing either
  * invalidates the cache by construction; nobody has to remember to flush it.
@@ -22,6 +24,7 @@ final readonly class CachingLineItemExtractor implements LineItemExtractor
         private CacheInterface $cache,
         private string $modelKey,
         private int $ttlSeconds = 30 * 24 * 3600,
+        private int $ttlWithRejectedSeconds = 24 * 3600,
     ) {}
 
     public function extract(string $document, string $context = ''): ExtractionResult
@@ -36,11 +39,11 @@ final readonly class CachingLineItemExtractor implements LineItemExtractor
 
         $result = $this->inner->extract($document, $context);
 
-        // Only clean results are worth replaying; a result with rejected items
-        // should get a fresh attempt next time.
-        if ($result->rejected === []) {
-            $this->cache->set($key, $result->toArray(), $this->ttlSeconds);
-        }
+        // Real bills nearly always leave something for review, so caching only clean
+        // results would mean caching almost nothing. A result with rejected items is
+        // kept for a day instead of a month: a re-upload that day is served, and a
+        // later one gets a fresh attempt.
+        $this->cache->set($key, $result->toArray(), $result->rejected === [] ? $this->ttlSeconds : $this->ttlWithRejectedSeconds);
 
         return $result;
     }

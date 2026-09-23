@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace FitOut\Extraction;
 
 use FitOut\Domain\LineItem;
+use FitOut\Llm\Exceptions\LlmOutputTruncated;
 use FitOut\Llm\LlmClient;
 use FitOut\Llm\StructuredRequest;
 use FitOut\Llm\Usage;
@@ -15,6 +16,7 @@ use FitOut\Llm\Usage;
  * The loop is bounded: after $maxRepairs rounds, whatever still fails is
  * returned as rejected rather than silently dropped or silently kept, so a
  * human reviewing the tender can see exactly what the tool was unsure of.
+ * Nothing accepted in an earlier round is lost in a later one.
  */
 final readonly class LlmLineItemExtractor implements LineItemExtractor
 {
@@ -36,21 +38,36 @@ final readonly class LlmLineItemExtractor implements LineItemExtractor
         $usage = new Usage;
         $durationMs = 0;
         $attempt = 0;
+        /** @var array<string, LineItem> $accepted by quote, across rounds */
+        $accepted = [];
+        /** @var list<string> $warnings */
+        $warnings = [];
 
         while (true) {
             $attempt++;
-            $response = $this->llm->structured($request);
+            try {
+                $response = $this->llm->structured($request);
+            } catch (LlmOutputTruncated $e) {
+                throw $e->plus($usage); // earlier rounds were paid for too
+            }
             $usage = $usage->plus($response->usage);
             $durationMs += $response->durationMs;
 
             [$items, $violations] = $this->validate($response->data, $document);
 
-            if ($violations === [] || $attempt > $this->maxRepairs) {
-                /** @var list<string> $warnings */
-                $warnings = $response->data['warnings'] ?? [];
+            // The repair turn asks for the complete list again, and a model does not always
+            // comply. An item that passed in an earlier round and is missing now is kept, not
+            // dropped silently; one it restates (same quote) is replaced by the new version.
+            foreach ($items as $item) {
+                $accepted[self::key($item->sourceText)] = $item;
+            }
+            /** @var list<string> $roundWarnings */
+            $roundWarnings = is_array($response->data['warnings'] ?? null) ? $response->data['warnings'] : [];
+            $warnings = array_values(array_unique([...$warnings, ...$roundWarnings]));
 
+            if ($violations === [] || $attempt > $this->maxRepairs) {
                 return new ExtractionResult(
-                    items: $items,
+                    items: array_values($accepted),
                     warnings: $warnings,
                     rejected: $violations,
                     model: $response->model,
@@ -63,6 +80,11 @@ final readonly class LlmLineItemExtractor implements LineItemExtractor
 
             $request = $request->withFollowUp($response->rawJson, ExtractionPrompt::repairMessage($violations));
         }
+    }
+
+    private static function key(string $sourceText): string
+    {
+        return mb_strtolower((string) preg_replace('/\s+/u', ' ', trim($sourceText)));
     }
 
     /**

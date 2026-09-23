@@ -29,14 +29,34 @@ final readonly class ChunkedLineItemExtractor implements LineItemExtractor
 
     public function extract(string $document, string $context = ''): ExtractionResult
     {
-        $parts = [];
+        return ExtractionResult::merge(array_map(
+            fn (array $range): ExtractionResult => $this->extractPiece($document, substr($document, $range[0], $range[1]), $range[0], $context),
+            $this->ranges($document),
+        ));
+    }
+
+    /**
+     * Where the pieces of $document are, as [byte offset, byte length], so each
+     * can be read on its own — by a separate queue job — with extractRange().
+     *
+     * @return non-empty-list<array{int, int}>
+     */
+    public function ranges(string $document): array
+    {
+        $ranges = [];
         $offset = 0;
         foreach ((new DocumentChunker($this->maxChars))->split($document) as $piece) {
-            $parts[] = $this->extractPiece($document, $piece, $offset, $context);
+            $ranges[] = [$offset, strlen($piece)];
             $offset += strlen($piece);
         }
 
-        return ExtractionResult::merge($parts);
+        return $ranges;
+    }
+
+    /** Reads one piece of $document, with the context before it and the same overflow handling as extract(). */
+    public function extractRange(string $document, int $offset, int $length): ExtractionResult
+    {
+        return $this->extractPiece($document, substr($document, $offset, $length), $offset, '');
     }
 
     /** $offset is where $piece starts in $document; every piece after the first is given the context before it. */
@@ -47,22 +67,27 @@ final readonly class ChunkedLineItemExtractor implements LineItemExtractor
         try {
             return $this->inner->extract($piece, $context);
         } catch (LlmOutputTruncated $e) {
-            $halves = mb_strlen($piece) > $this->minChars ? self::halve($piece) : null;
-            if ($halves === null) {
-                // A small piece does not overflow by being too long: the answer ran away
-                // (seen in evals: 16k tokens for a document that normally takes 1.2k).
-                // That is a sampling accident, so it gets one more try.
-                if ($retried) {
-                    throw $e;
+            // The overflowing answer was paid for: whatever comes next carries its cost.
+            try {
+                $halves = mb_strlen($piece) > $this->minChars ? self::halve($piece) : null;
+                if ($halves === null) {
+                    // A small piece does not overflow by being too long: the answer ran away
+                    // (seen in evals: 16k tokens for a document that normally takes 1.2k).
+                    // That is a sampling accident, so it gets one more try.
+                    if ($retried) {
+                        throw $e;
+                    }
+
+                    return $this->extractPiece($document, $piece, $offset, $outer, retried: true)->withWastedUsage($e->usage);
                 }
 
-                return $this->extractPiece($document, $piece, $offset, $outer, retried: true);
+                return ExtractionResult::merge([
+                    $this->extractPiece($document, $halves[0], $offset, $outer),
+                    $this->extractPiece($document, $halves[1], $offset + strlen($halves[0]), $outer),
+                ])->withWastedUsage($e->usage);
+            } catch (LlmOutputTruncated $again) {
+                throw $again === $e ? $e : $again->plus($e->usage);
             }
-
-            return ExtractionResult::merge([
-                $this->extractPiece($document, $halves[0], $offset, $outer),
-                $this->extractPiece($document, $halves[1], $offset + strlen($halves[0]), $outer),
-            ]);
         }
     }
 

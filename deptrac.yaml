@@ -1,5 +1,8 @@
 # Dependency rules for src/. The domain knows nothing; adapters know the domain.
 # Laravel (app/) is the composition root and is deliberately left out.
+#
+# Vendor libraries are layers too, so the rules say which part of the core may
+# use which library: only adapters touch an SDK, a parser or a process runner.
 deptrac:
   paths:
     - ./src
@@ -10,8 +13,17 @@ deptrac:
           value: src/Domain/.*
     - name: Llm
       collectors:
+        - type: bool
+          must:
+            - type: directory
+              value: src/Llm/.*
+          must_not:
+            - type: directory
+              value: src/Llm/Anthropic/.*
+    - name: LlmAnthropic
+      collectors:
         - type: directory
-          value: src/Llm/.*
+          value: src/Llm/Anthropic/.*
     - name: Extraction
       collectors:
         - type: directory
@@ -30,13 +42,46 @@ deptrac:
           value: src/Evals/.*
     - name: Ingestion
       collectors:
+        - type: bool
+          must:
+            - type: directory
+              value: src/Ingestion/.*
+          must_not:
+            - type: directory
+              value: src/Ingestion/Local/.*
+    - name: IngestionLocal
+      collectors:
         - type: directory
-          value: src/Ingestion/.*
+          value: src/Ingestion/Local/.*
+
+    # Vendor
+    - name: AnthropicSdk
+      collectors:
+        - type: classNameRegex
+          value: '#^Anthropic\\#'
+    - name: PsrCache
+      collectors:
+        - type: classNameRegex
+          value: '#^Psr\\SimpleCache\\#'
+    - name: PdfParser
+      collectors:
+        - type: classNameRegex
+          value: '#^Smalot\\PdfParser\\#'
+    - name: Spreadsheets
+      collectors:
+        - type: classNameRegex
+          value: '#^OpenSpout\\#'
+    - name: Processes
+      collectors:
+        - type: classNameRegex
+          value: '#^Symfony\\Component\\Process\\#'
   ruleset:
     Domain: ~
     Llm: ~
-    Extraction: [Domain, Llm]
+    LlmAnthropic: [Llm, AnthropicSdk]
+    Extraction: [Domain, Llm, PsrCache]
     Suppliers: [Domain]
     Rfq: [Domain, Suppliers]
-    Evals: [Domain, Extraction]
+    Evals: [Domain, Extraction, Ingestion]
     Ingestion: ~
+    IngestionLocal: [Ingestion, PdfParser, Spreadsheets, Processes]
